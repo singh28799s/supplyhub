@@ -1,0 +1,2114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{{ store_settings.store_name }} | B2B Wholesale Supplier</title>
+
+    <!-- Bootstrap 5 -->
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <!-- Bootstrap Icons -->
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    >
+
+    <style>
+
+        /* =====================================================
+           GLOBAL
+        ===================================================== */
+
+        :root {
+            --green: #087443;
+            --green-dark: #045b35;
+            --green-light: #edf8f2;
+            --dark: #17211b;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --orange: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f7f8f7;
+            color: var(--dark);
+            overflow-x: hidden;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        button {
+            font-family: inherit;
+        }
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
+
+        .main-header {
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 15px 0;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--green);
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .logo-icon {
+            font-size: 31px;
+        }
+
+        .logo-subtitle {
+            display: block;
+            color: #7b827e;
+            font-size: 10px;
+            margin-top: -4px;
+        }
+
+
+        /* Search */
+
+        .search-wrapper {
+            height: 46px;
+            display: flex;
+            border: 1px solid #d5dbd8;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+        }
+
+        .search-category {
+            width: 125px;
+            border: none;
+            border-right: 1px solid var(--border);
+            padding: 0 12px;
+            outline: none;
+            color: #555;
+            background: white;
+            font-size: 13px;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 0 15px;
+            font-size: 14px;
+        }
+
+        .search-button {
+            width: 55px;
+            border: none;
+            background: var(--green);
+            color: white;
+            font-size: 18px;
+        }
+
+        .search-button:hover {
+            background: var(--green-dark);
+        }
+
+
+        /* Header actions */
+
+        .header-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 22px;
+        }
+
+        .header-action {
+            position: relative;
+            text-align: center;
+            color: #333;
+            font-size: 11px;
+            min-width: 45px;
+        }
+
+        .header-action i {
+            display: block;
+            font-size: 21px;
+            margin-bottom: 2px;
+        }
+
+        .header-action:hover {
+            color: var(--green);
+        }
+
+        .auth-logout-form {
+            margin: 0;
+        }
+
+        .auth-logout-button {
+            border: 0;
+            padding: 0;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .cart-badge {
+            position: absolute;
+            top: -7px;
+            right: 3px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: white;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+
+        /* =====================================================
+           NAVIGATION
+        ===================================================== */
+
+        .navigation {
+            background: white;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .category-button {
+            background: var(--green);
+            color: white;
+            padding: 11px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .category-button:hover {
+            background: var(--green-dark);
+            color: white;
+        }
+
+        .navigation .nav-link {
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 12px 14px !important;
+        }
+
+        .navigation .nav-link:hover {
+            color: var(--green);
+        }
+
+        .quote-button {
+            background: var(--green);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+
+        /* =====================================================
+           HERO
+        ===================================================== */
+
+        .hero {
+            min-height: 470px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            color: white;
+
+            background:
+                radial-gradient(ellipse at 82% 22%, rgba(117, 194, 130, .34), transparent 38%),
+                radial-gradient(ellipse at 88% 88%, rgba(223, 169, 83, .24), transparent 34%),
+                linear-gradient(118deg, #073d29 0%, #0a6740 55%, #174c35 100%);
+        }
+
+        .hero-content {
+            max-width: 690px;
+        }
+
+        .hero-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 15px;
+            border: 1px solid rgba(255,255,255,.3);
+            background: rgba(255,255,255,.10);
+            border-radius: 30px;
+            font-size: 13px;
+            margin-bottom: 18px;
+        }
+
+        .hero-title {
+            font-size: 54px;
+            font-weight: 800;
+            line-height: 1.08;
+            margin-bottom: 18px;
+        }
+
+        .hero-title span {
+            color: #9ee8bc;
+        }
+
+        .hero-description {
+            font-size: 18px;
+            line-height: 1.6;
+            color: rgba(255,255,255,.9);
+            max-width: 600px;
+            margin-bottom: 30px;
+        }
+
+        .hero-button-primary {
+            background: var(--green);
+            color: white;
+            border: none;
+            padding: 13px 25px;
+            border-radius: 7px;
+            font-weight: 700;
+        }
+
+        .hero-button-primary:hover {
+            background: #0a8b50;
+            color: white;
+        }
+
+        .hero-button-secondary {
+            background: white;
+            color: var(--green);
+            border: none;
+            padding: 13px 25px;
+            border-radius: 7px;
+            font-weight: 700;
+        }
+
+        .hero-button-secondary:hover {
+            background: #f2f2f2;
+            color: var(--green-dark);
+        }
+
+
+        /* =====================================================
+           TRUST FEATURES
+        ===================================================== */
+
+        .features-section {
+            background: white;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .feature {
+            min-height: 105px;
+            padding: 20px 12px;
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            border-right: 1px solid #eee;
+        }
+
+        .feature:last-child {
+            border-right: none;
+        }
+
+        .feature-icon {
+            min-width: 43px;
+            height: 43px;
+            border-radius: 50%;
+            background: var(--green-light);
+            color: var(--green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .feature h6 {
+            margin: 0 0 3px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .feature p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+
+        /* =====================================================
+           GENERAL SECTION
+        ===================================================== */
+
+        .section {
+            padding: 60px 0;
+        }
+
+        .section-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+
+        .section-title {
+            margin: 0;
+            font-size: 29px;
+            font-weight: 800;
+        }
+
+        .section-link {
+            color: var(--green);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+
+        /* =====================================================
+           CATEGORIES
+        ===================================================== */
+
+        .category-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            transition: .25s;
+            cursor: pointer;
+            height: 100%;
+        }
+
+        .category-card:focus-visible {
+            outline: 3px solid var(--green);
+            outline-offset: 3px;
+        }
+
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0,0,0,.08);
+            border-color: #c8ddd2;
+        }
+
+        .category-image {
+            height: 125px;
+            border-radius: 9px;
+            background: var(--green-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 55px;
+            margin-bottom: 14px;
+        }
+
+        .category-card h6 {
+            margin-bottom: 4px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .category-card small {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+
+        /* =====================================================
+           PRODUCT FILTER
+        ===================================================== */
+
+        .product-tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            margin-bottom: 25px;
+        }
+
+        .product-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .product-tab {
+            border: 1px solid var(--border);
+            background: white;
+            padding: 8px 17px;
+            border-radius: 30px;
+            font-size: 13px;
+            white-space: nowrap;
+            color: #555;
+        }
+
+        .product-tab.active,
+        .product-tab:hover {
+            background: var(--green);
+            color: white;
+            border-color: var(--green);
+        }
+
+
+        /* =====================================================
+           PRODUCT CARD
+        ===================================================== */
+
+        .product-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            height: 100%;
+            transition: .25s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0,0,0,.09);
+        }
+
+        .product-image {
+            height: 220px;
+            background: #f0f5f2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 85px;
+            position: relative;
+        }
+
+        .product-image img {
+            position: absolute;
+            inset: 0;
+        }
+
+        .product-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            color: white;
+            background: var(--green);
+            padding: 5px 9px;
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .badge-orange {
+            background: #ef7d18;
+        }
+
+        .badge-red {
+            background: #dc3545;
+        }
+
+        .badge-blue {
+            background: #1681c4;
+        }
+
+        .wishlist-button {
+            z-index: 1;
+            position: absolute;
+            top: 11px;
+            right: 11px;
+            display: grid;
+            place-items: center;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            box-shadow: 0 2px 12px rgba(0,0,0,.12);
+            color: #555;
+            line-height: 1;
+        }
+
+        .wishlist-button i {
+            display: block;
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .wishlist-button.active {
+            color: #e53935;
+        }
+
+        .product-body {
+            padding: 17px;
+        }
+
+        .product-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 7px;
+            min-height: 38px;
+        }
+
+        .rating {
+            color: #f59e0b;
+            font-size: 12px;
+        }
+
+        .rating span {
+            color: #8a8f8c;
+        }
+
+        .product-price {
+            color: var(--green);
+            font-size: 21px;
+            font-weight: 800;
+            margin-top: 8px;
+        }
+
+        .product-price small {
+            color: #777;
+            font-size: 11px;
+            font-weight: 400;
+        }
+
+        .product-moq {
+            color: #777;
+            font-size: 12px;
+            margin: 4px 0 14px;
+        }
+
+        .add-cart-button {
+            width: 100%;
+            border: none;
+            border-radius: 6px;
+            padding: 10px;
+            background: var(--green);
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .add-cart-button:hover {
+            background: var(--green-dark);
+        }
+
+        .buy-now-button {
+            width: 100%;
+            margin-top: 8px;
+            border: 1px solid var(--green);
+            border-radius: 6px;
+            padding: 9px;
+            background: white;
+            color: var(--green);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .buy-now-button:hover {
+            background: var(--green-light);
+        }
+
+
+        /* =====================================================
+           BULK QUOTE
+        ===================================================== */
+
+        .bulk-box {
+            background:
+                linear-gradient(
+                    100deg,
+                    #e9f8ef,
+                    #f5fbf7
+                );
+            border-radius: 16px;
+            padding: 42px;
+            border: 1px solid #dcefe3;
+        }
+
+        .bulk-icon {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            background: white;
+            color: var(--green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+        }
+
+        .bulk-box h2 {
+            font-size: 29px;
+            font-weight: 800;
+        }
+
+        .bulk-box p {
+            color: var(--muted);
+            margin-bottom: 0;
+        }
+
+
+        /* =====================================================
+           FOOTER
+        ===================================================== */
+
+        .footer {
+            background: #063c29;
+            color: white;
+            padding-top: 55px;
+        }
+
+        .footer-logo {
+            color: white;
+            font-size: 25px;
+            font-weight: 800;
+        }
+
+        .footer-description {
+            color: #bdd0c7;
+            font-size: 13px;
+            line-height: 1.7;
+            margin-top: 14px;
+            max-width: 330px;
+        }
+
+        .footer h5 {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 17px;
+        }
+
+        .footer a,
+        .footer p {
+            color: #bdd0c7;
+            font-size: 13px;
+            line-height: 2;
+            margin: 0;
+        }
+
+        .footer a:hover {
+            color: white;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 9px;
+            margin-top: 17px;
+        }
+
+        .social-icon {
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,.1);
+            color: white !important;
+            border-radius: 50%;
+        }
+
+        .social-icon:hover {
+            background: var(--green);
+        }
+
+        .footer-bottom {
+            margin-top: 45px;
+            padding: 18px 0;
+            border-top: 1px solid rgba(255,255,255,.1);
+            color: #9db7aa;
+            font-size: 12px;
+        }
+
+
+        /* =====================================================
+           MOBILE MENU
+        ===================================================== */
+
+        .mobile-menu-button {
+            border: none;
+            background: transparent;
+            color: var(--green);
+            font-size: 25px;
+        }
+
+
+        /* =====================================================
+           RESPONSIVE - TABLET
+        ===================================================== */
+
+        @media (max-width: 991.98px) {
+
+            .top-bar-right {
+                display: none;
+            }
+
+            .header-actions {
+                gap: 12px;
+            }
+
+            .navigation {
+                overflow-x: auto;
+            }
+
+            .navigation-inner {
+                min-width: max-content;
+            }
+
+            .hero {
+                min-height: 460px;
+            }
+
+            .hero-title {
+                font-size: 45px;
+            }
+
+            .feature {
+                border-bottom: 1px solid #eee;
+            }
+
+            .feature:nth-child(3) {
+                border-right: none;
+            }
+
+            .product-image {
+                height: 190px;
+            }
+        }
+
+
+        /* =====================================================
+           RESPONSIVE - MOBILE
+        ===================================================== */
+
+        @media (max-width: 767.98px) {
+
+            .top-bar {
+                display: none;
+            }
+
+            .main-header {
+                padding: 11px 0;
+            }
+
+            .logo {
+                font-size: 22px;
+            }
+
+            .logo-icon {
+                font-size: 23px;
+            }
+
+            .logo-subtitle {
+                display: none;
+            }
+
+            .header-actions {
+                gap: 10px;
+            }
+
+            .header-action {
+                font-size: 9px;
+                min-width: 35px;
+            }
+
+            .header-action i {
+                font-size: 19px;
+            }
+
+            .header-action.hide-mobile {
+                display: none;
+            }
+
+            .search-category {
+                display: none;
+            }
+
+            .search-wrapper {
+                height: 44px;
+            }
+
+            .navigation {
+                display: none;
+            }
+
+
+            /* HERO */
+
+            .hero {
+                min-height: 530px;
+                padding: 55px 0;
+                background-position: 65% center;
+            }
+
+            .hero-content {
+                width: 100%;
+            }
+
+            .hero-tag {
+                font-size: 11px;
+            }
+
+            .hero-title {
+                font-size: 36px;
+                line-height: 1.12;
+            }
+
+            .hero-description {
+                font-size: 15px;
+                line-height: 1.55;
+            }
+
+            .hero-buttons {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .hero-button-primary,
+            .hero-button-secondary {
+                width: 100%;
+                text-align: center;
+            }
+
+
+            /* FEATURES */
+
+            .feature {
+                min-height: 80px;
+                padding: 13px 10px;
+                border-right: none;
+            }
+
+            .feature-icon {
+                min-width: 38px;
+                width: 38px;
+                height: 38px;
+                font-size: 17px;
+            }
+
+            .feature h6 {
+                font-size: 12px;
+            }
+
+            .feature p {
+                font-size: 10px;
+            }
+
+
+            /* SECTIONS */
+
+            .section {
+                padding: 42px 0;
+            }
+
+            .section-heading {
+                margin-bottom: 20px;
+            }
+
+            .section-title {
+                font-size: 22px;
+            }
+
+            .section-link {
+                font-size: 11px;
+            }
+
+
+            /* CATEGORY */
+
+            .category-image {
+                height: 95px;
+                font-size: 43px;
+            }
+
+            .category-card {
+                padding: 8px;
+                border-radius: 9px;
+            }
+
+            .category-card h6 {
+                font-size: 12px;
+            }
+
+            .category-card small {
+                font-size: 9px;
+            }
+
+
+            /* PRODUCT */
+
+            .product-tabs {
+                margin-bottom: 18px;
+            }
+
+            .product-tab {
+                padding: 7px 13px;
+                font-size: 11px;
+            }
+
+            .product-image {
+                height: 145px;
+                font-size: 55px;
+            }
+
+            .product-badge {
+                z-index: 1;
+                top: 7px;
+                left: 7px;
+                padding: 4px 6px;
+                font-size: 8px;
+            }
+
+            .wishlist-button {
+                width: 27px;
+                height: 27px;
+                top: 7px;
+                right: 7px;
+            }
+
+            .wishlist-button i {
+                font-size: 13px;
+            }
+
+            .product-body {
+                padding: 10px;
+            }
+
+            .product-title {
+                font-size: 12px;
+                min-height: 32px;
+                line-height: 1.3;
+            }
+
+            .rating {
+                font-size: 9px;
+            }
+
+            .product-price {
+                font-size: 16px;
+            }
+
+            .product-price small {
+                font-size: 9px;
+            }
+
+            .product-moq {
+                font-size: 9px;
+                margin-bottom: 10px;
+            }
+
+            .add-cart-button {
+                font-size: 10px;
+                padding: 8px 3px;
+            }
+
+
+            /* BULK */
+
+            .bulk-box {
+                padding: 27px 17px;
+                text-align: center;
+            }
+
+            .bulk-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 27px;
+                margin: 0 auto 15px;
+            }
+
+            .bulk-box h2 {
+                font-size: 22px;
+            }
+
+            .bulk-box p {
+                font-size: 12px;
+                line-height: 1.6;
+            }
+
+            .bulk-button {
+                width: 100%;
+                margin-top: 18px;
+            }
+
+
+            /* FOOTER */
+
+            .footer {
+                padding-top: 40px;
+            }
+
+            .footer h5 {
+                font-size: 14px;
+            }
+
+            .footer a,
+            .footer p {
+                font-size: 11px;
+            }
+
+            .footer-bottom {
+                font-size: 10px;
+            }
+        }
+
+
+        /* =====================================================
+           EXTRA SMALL MOBILE
+        ===================================================== */
+
+        @media (max-width: 400px) {
+
+            .header-actions {
+                gap: 6px;
+            }
+
+            .header-action:nth-child(1) {
+                display: none;
+            }
+
+            .logo {
+                font-size: 20px;
+            }
+
+            .hero-title {
+                font-size: 31px;
+            }
+
+            .category-image {
+                height: 80px;
+                font-size: 37px;
+            }
+
+            .product-image {
+                height: 130px;
+            }
+
+            .product-title {
+                font-size: 11px;
+            }
+
+            .product-price {
+                font-size: 15px;
+            }
+        }
+
+    </style>
+</head>
+
+
+<body>
+
+<form id="csrfTokenForm" class="d-none">{% csrf_token %}</form>
+
+
+<!-- =====================================================
+     TOP BAR
+===================================================== -->
+
+<div class="top-bar">
+
+    <div class="container">
+
+        <div class="d-flex justify-content-between">
+
+            <div class="d-flex gap-4">
+
+                <div class="top-bar-item">
+                    <i class="bi bi-geo-alt"></i>
+                    Trusted Wholesale Supplier
+                </div>
+
+                <div class="top-bar-item">
+                    {{ store_settings.delivery_note|default:"Wholesale delivery available" }}
+                </div>
+
+            </div>
+
+            <div class="top-bar-right d-flex gap-4">
+
+                <div class="top-bar-item">
+                    <i class="bi bi-telephone"></i>
+                    {{ store_settings.support_phone|default:"Contact us for wholesale enquiries" }}
+                </div>
+
+                <div class="top-bar-item">
+                    <i class="bi bi-receipt"></i>
+                    Bulk pricing available on request
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
+
+<header class="main-header">
+
+    <div class="container">
+
+        <div class="row align-items-center g-3">
+
+            <!-- LOGO -->
+
+            <div class="col-5 col-md-3">
+
+                <a href="{% url 'home' %}" class="logo">
+
+                    <i class="bi bi-leaf-fill logo-icon"></i>
+
+                    <span>
+                        {{ store_settings.store_name }}
+                        <small class="logo-subtitle">
+                            {{ store_settings.tagline|default:"Wholesale for a Better Tomorrow" }}
+                        </small>
+                    </span>
+
+                </a>
+
+            </div>
+
+
+            <!-- SEARCH -->
+
+            <div class="col-12 col-md-6 order-3 order-md-2">
+
+                <div class="search-wrapper">
+
+                    <select class="search-category" id="searchCategory">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.slug }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <input
+                        type="text"
+                        id="searchInput"
+                        class="search-input"
+                        placeholder="Search products..."
+                    >
+
+                    <button
+                        class="search-button"
+                        onclick="searchProducts()"
+                    >
+                        <i class="bi bi-search"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- ACTIONS -->
+
+            <div class="col-7 col-md-3 order-2 order-md-3">
+
+                <div class="header-actions">
+
+                    {% if user.is_authenticated %}
+                    <span class="header-action hide-mobile">
+                        <i class="bi bi-person-check"></i>
+                        {{ user.username }}
+                    </span>
+                    <form method="post" action="{% url 'logout' %}" class="auth-logout-form hide-mobile">
+                        {% csrf_token %}
+                        <button type="submit" class="header-action auth-logout-button">
+                            <i class="bi bi-box-arrow-right"></i>
+                            Logout
+                        </button>
+                    </form>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="header-action hide-mobile">
+                        <i class="bi bi-person"></i>
+                        Login
+                    </a>
+                    <a href="{% url 'register' %}" class="header-action hide-mobile">
+                        <i class="bi bi-person-plus"></i>
+                        Register
+                    </a>
+                    {% endif %}
+
+
+                    <a href="{% url 'my_orders' %}" class="header-action hide-mobile">
+
+                        <i class="bi bi-box-seam"></i>
+
+                        Orders
+
+                    </a>
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'my_quotes' %}" class="header-action hide-mobile"><i class="bi bi-file-earmark-text"></i>Quotes</a>
+                    {% endif %}
+
+
+                    <a href="{% url 'wishlist' %}" class="header-action">
+
+                        <i class="bi bi-heart"></i>
+
+                        Wishlist
+
+                    </a>
+
+
+                    <a href="{% url 'cart' %}" class="header-action position-relative">
+
+                        <span
+                            class="cart-badge"
+                            id="cartCount"
+                        >
+                            {{ cart_count|default:0 }}
+                        </span>
+
+                        <i class="bi bi-cart3"></i>
+
+                        Cart
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =====================================================
+     DESKTOP NAVIGATION
+===================================================== -->
+
+<div class="navigation">
+
+    <div class="container">
+
+        <div class="navigation-inner d-flex align-items-center">
+
+            <a href="#categories" class="category-button">
+
+                <i class="bi bi-list"></i>
+
+                All Categories
+
+            </a>
+
+
+            <nav class="navbar navbar-expand-lg">
+
+                <ul class="navbar-nav ms-3">
+
+                    <li class="nav-item">
+                        <a href="{% url 'home' %}" class="nav-link">
+                            Home
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="#categories" class="nav-link">
+                            Categories
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="#products" class="nav-link">
+                            Products
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="#bulk" class="nav-link">
+                            Bulk Orders
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{% url 'quote_request' %}" class="nav-link">
+                            Custom Manufacturing
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="#contact" class="nav-link">
+                            Contact
+                        </a>
+                    </li>
+
+                </ul>
+
+            </nav>
+
+
+            <button
+                class="quote-button ms-auto"
+                onclick="window.location.href='{% url 'quote_request' %}'"
+            >
+
+                <i class="bi bi-file-earmark-text"></i>
+
+                Request a Quote
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     HERO
+===================================================== -->
+
+<section class="hero">
+
+    <div class="container">
+
+        <div class="hero-content">
+
+            <div class="hero-tag">
+
+                <i class="bi bi-check-circle-fill"></i>
+
+                Eco-Friendly
+                •
+                Durable
+                •
+                Sustainable
+
+            </div>
+
+
+            <h1 class="hero-title">
+
+                Premium Jute Products
+
+                <span>
+                    at Wholesale Prices
+                </span>
+
+            </h1>
+
+
+            <p class="hero-description">
+
+                Direct from manufacturer.
+                Competitive bulk pricing.
+                Custom branding and reliable delivery
+                for your business.
+
+            </p>
+
+
+            <div class="hero-buttons d-flex gap-3">
+
+                <a
+                    href="#products"
+                    class="hero-button-primary"
+                >
+
+                    Shop Now
+
+                    <i class="bi bi-arrow-right"></i>
+
+                </a>
+
+
+                <a
+                    href="{% url 'quote_request' %}"
+                    class="hero-button-secondary"
+                >
+
+                    <i class="bi bi-file-earmark-text"></i>
+
+                    Get Bulk Quote
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     FEATURES
+===================================================== -->
+
+<section class="features-section">
+
+    <div class="container">
+
+        <div class="row">
+
+            <div class="col-6 col-lg-2">
+
+                <div class="feature">
+
+                    <div class="feature-icon">
+                        <i class="bi bi-tag"></i>
+                    </div>
+
+                    <div>
+
+                        <h6>Wholesale Prices</h6>
+
+                        <p>
+                            Best rates for bulk orders
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-6 col-lg-2">
+
+                <div class="feature">
+
+                    <div class="feature-icon">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+
+                    <div>
+
+                        <h6>Wide Product Range</h6>
+
+                        <p>
+                            {{ products|length }} products
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-6 col-lg-2">
+
+                <div class="feature">
+
+                    <div class="feature-icon">
+                        <i class="bi bi-gear"></i>
+                    </div>
+
+                    <div>
+
+                        <h6>Customization</h6>
+
+                        <p>
+                            OEM & branding
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-6 col-lg-2">
+
+                <div class="feature">
+
+                    <div class="feature-icon">
+                        <i class="bi bi-truck"></i>
+                    </div>
+
+                    <div>
+
+                        <h6>Pan India Delivery</h6>
+
+                        <p>
+                            Fast & reliable
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-6 col-lg-2">
+
+                <div class="feature">
+
+                    <div class="feature-icon">
+                        <i class="bi bi-receipt"></i>
+                    </div>
+
+                    <div>
+
+                        <h6>GST Invoice</h6>
+
+                        <p>
+                            Tax compliant
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-6 col-lg-2">
+
+                <div class="feature">
+
+                    <div class="feature-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+
+                    <div>
+
+                        <h6>Order Status</h6>
+
+                        <p>
+                            Track requests in your account
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     CATEGORIES
+===================================================== -->
+
+<section
+    class="section"
+    id="categories"
+>
+
+    <div class="container">
+
+        <div class="section-heading">
+
+            <h2 class="section-title">Shop by Category</h2>
+            <a href="#products" class="section-link">View Products →</a>
+        </div>
+        <div class="row g-3">
+            {% for category in categories %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <button class="category-card w-100 border-0" type="button" onclick="filterCategory('{{ category.slug }}')">
+                    <div class="category-image">{{ category.icon }}</div>
+                    <h6>{{ category.name }}</h6>
+                    <small>{{ category.product_count }} product{{ category.product_count|pluralize }}</small>
+                </button>
+            </div>
+            {% empty %}
+            <div class="col-12"><p class="text-muted">No categories are available yet. Add categories in the Django admin.</p></div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+
+<!-- =====================================================
+     PRODUCTS
+===================================================== -->
+
+<section
+    class="section bg-white"
+    id="products"
+>
+
+    <div class="container">
+
+        <div class="section-heading">
+
+            <h2 class="section-title">Featured Products</h2>
+            <a href="#productGrid" class="section-link">View All Products →</a>
+        </div>
+
+
+        <!-- FILTER TABS -->
+        <div class="product-tabs">
+            <button class="product-tab active" type="button" onclick="showAllProducts(this)">All Products</button>
+            {% for category in product_categories %}
+            <button class="product-tab" type="button" data-category-filter="{{ category.slug }}" onclick="filterProducts('{{ category.slug }}', this)">{{ category.name }}</button>
+            {% endfor %}
+        </div>
+
+        <!-- DATABASE-BACKED PRODUCT GRID -->
+        <div class="row g-3 g-md-4" id="productGrid">
+            {% for product in products %}
+            <div class="col-6 col-md-4 col-lg-3 product-item" data-category="{{ product.category.slug }}" data-name="{{ product.name }}">
+                <div class="product-card">
+                    <div class="product-image">
+                        {% if product.badge %}<span class="product-badge">{{ product.badge }}</span>{% endif %}
+                        <button class="wishlist-button {% if product.pk|stringformat:'s' in wishlist_ids %}active{% endif %}" type="button" aria-label="Toggle {{ product.name }} in wishlist" aria-pressed="{% if product.pk|stringformat:'s' in wishlist_ids %}true{% else %}false{% endif %}" data-product-id="{{ product.pk }}" onclick="toggleWishlist(this)"><i class="bi {% if product.pk|stringformat:'s' in wishlist_ids %}bi-heart-fill{% else %}bi-heart{% endif %}"></i></button>
+                        {% if product.image_url %}
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}" style="width:100%;height:100%;object-fit:cover">
+                        {% else %}
+                        <span aria-hidden="true">{{ product.icon }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="product-body">
+                        <div class="product-title">{{ product.name }}</div>
+                        <div class="product-price">₹{{ product.wholesale_price }} <small>/ {{ product.unit }} (wholesale)</small></div>
+                        {% if product.offer_price and product.offer_price < product.price %}<div class="product-moq"><del>₹{{ product.price }}</del> <span class="text-success">Offer price</span></div>{% endif %}
+                        <div class="product-moq">Minimum order: {{ product.minimum_order_quantity }} {{ product.unit }}{{ product.minimum_order_quantity|pluralize }}</div>
+                        {% if product.sample_price is not None %}
+                        <div class="product-moq text-success">Sample: {{ product.sample_quantity }} {{ product.unit }} for ₹{{ product.sample_price }} each</div>
+                        <form method="post" action="{% url 'buy_sample' product.pk %}">
+                            {% csrf_token %}
+                            <button class="buy-now-button" type="submit"><i class="bi bi-box-seam"></i> Order Sample · ₹{{ product.sample_price }}</button>
+                        </form>
+                        {% endif %}
+                        <button class="add-cart-button" type="button" data-product-id="{{ product.pk }}" data-product-name="{{ product.name }}" onclick="addToCart(this)">
+                            <i class="bi bi-cart-plus"></i> Add to Cart
+                        </button>
+                        <form method="post" action="{% url 'buy_now' product.pk %}">
+                            {% csrf_token %}
+                            <button class="buy-now-button" type="submit"><i class="bi bi-bag-check"></i> Buy Now</button>
+                        </form>
+                        <a class="btn btn-outline-success btn-sm w-100 mt-2" href="{% url 'quote_request' %}?product={{ product.pk }}">Request bulk quote</a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12"><p class="text-muted">No active products yet. Add products in the Django admin to display them here.</p></div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     BULK ORDER
+===================================================== -->
+
+<section
+    class="section"
+    id="bulk"
+>
+
+    <div class="container">
+
+        <div class="bulk-box">
+
+            <div class="row align-items-center">
+
+                <div class="col-md-2">
+
+                    <div class="bulk-icon">
+
+                        <i class="bi bi-file-earmark-check"></i>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-7 mt-3 mt-md-0">
+
+                    <h2>
+                        Need Large Quantity?
+                    </h2>
+
+                    <p>
+                        Get special wholesale pricing,
+                        custom branding and bulk-order solutions
+                        for your business.
+                    </p>
+
+                </div>
+
+
+                <div class="col-md-3 mt-3 mt-md-0">
+
+                    <a class="quote-button w-100 py-3 d-block text-center" href="{% url 'quote_request' %}">
+                        Request Bulk Quote <i class="bi bi-arrow-right"></i>
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     FOOTER
+===================================================== -->
+
+<footer
+    class="footer"
+    id="contact"
+>
+
+    <div class="container">
+
+        <div class="row g-4">
+
+            <!-- COMPANY -->
+
+            <div class="col-12 col-md-4">
+
+                <div class="footer-logo">
+
+                    <i class="bi bi-leaf-fill"></i>
+
+                    {{ store_settings.store_name }}
+
+                </div>
+
+                <p class="footer-description">
+
+                    Your trusted B2B wholesale supplier for
+                    premium jute, eco-friendly and industrial
+                    products.
+
+                </p>
+
+
+            </div>
+
+
+            <!-- QUICK LINKS -->
+
+            <div class="col-6 col-md-2">
+
+                <h5>
+                    Quick Links
+                </h5>
+
+                <p>
+                    <a href="{% url 'home' %}">Home</a><br>
+                    <a href="#products">Products</a><br>
+                    <a href="{% url 'quote_request' %}">Request a Quote</a><br>
+                    <a href="#contact">Contact</a>
+                </p>
+
+            </div>
+
+
+            <!-- CATEGORIES -->
+
+            <div class="col-6 col-md-2">
+
+                <h5>
+                    Categories
+                </h5>
+
+                <p>
+                    {% for category in categories %}
+                    <a href="#products" onclick="filterCategory('{{ category.slug }}'); return false;">{{ category.name }}</a>{% if not forloop.last %}<br>{% endif %}
+                    {% empty %}No categories yet.{% endfor %}
+                </p>
+
+            </div>
+
+
+            <!-- SUPPORT -->
+
+            <div class="col-6 col-md-2">
+
+                <h5>
+                    Customer Support
+                </h5>
+
+                <p>
+                    <a href="{% url 'my_orders' %}">My Orders</a><br>
+                    {% if user.is_authenticated %}<a href="{% url 'my_quotes' %}">My Quote Requests</a><br>{% endif %}
+                    <a href="{% url 'quote_request' %}">Contact for Support</a>
+                </p>
+
+            </div>
+
+
+            <!-- CONTACT -->
+
+            <div class="col-6 col-md-2">
+
+                <h5>
+                    Contact Us
+                </h5>
+
+                <p>
+
+                    <i class="bi bi-telephone"></i>
+                    {{ store_settings.support_phone|default:"Contact us by quote request" }}
+
+                    <br>
+
+                    <i class="bi bi-envelope"></i>
+                    {{ store_settings.support_email|default:"" }}
+
+                    <br>
+
+                    <i class="bi bi-geo-alt"></i>
+                    {{ store_settings.address|default:"" }}
+
+                    <br>
+
+                    <i class="bi bi-clock"></i>
+                    Mon - Sat
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="footer-bottom text-center">
+
+            © 2026 SupplyHub.
+            All Rights Reserved.
+
+        </div>
+
+    </div>
+
+</footer>
+
+
+<!-- =====================================================
+     JAVASCRIPT
+===================================================== -->
+
+<script>
+
+    /* =========================================
+       CART
+    ========================================= */
+
+    let cartCount = Number("{{ cart_count|default:0 }}");
+    let activeProductCategory = "";
+
+    async function addToCart(button) {
+        button.disabled = true;
+        try {
+            const response = await fetch("{% url 'add_to_cart' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                    "X-CSRFToken": document.querySelector("#csrfTokenForm [name=csrfmiddlewaretoken]").value,
+                },
+                body: new URLSearchParams({ product_id: button.dataset.productId }),
+            });
+            const result = await response.json();
+            if (!response.ok || !result.ok) throw new Error("Could not add this product. Please try again.");
+            cartCount = result.cart_count;
+            document.getElementById("cartCount").innerText = cartCount;
+            showToast(result.message);
+        } catch (error) {
+            showToast(error.message);
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+
+    /* =========================================
+       SEARCH
+    ========================================= */
+
+    function searchProducts() {
+        const categorySelect = document.getElementById("searchCategory");
+        activeProductCategory = categorySelect ? categorySelect.value : activeProductCategory;
+        applyProductFilters();
+    }
+
+    function applyProductFilters() {
+        const searchValue = document.getElementById("searchInput").value.toLowerCase().trim();
+        document.querySelectorAll(".product-item").forEach(product => {
+            const matchesName = product.dataset.name.toLowerCase().includes(searchValue);
+            const matchesCategory = !activeProductCategory || product.dataset.category === activeProductCategory;
+            product.style.display = matchesName && matchesCategory ? "" : "none";
+        });
+    }
+
+
+    /* Search on Enter */
+
+    document
+        .getElementById("searchInput")
+        .addEventListener(
+            "keydown",
+            function(event) {
+
+                if (event.key === "Enter") {
+
+                    searchProducts();
+
+                }
+
+            }
+        );
+
+    document.getElementById("searchInput").addEventListener("input", searchProducts);
+    document.getElementById("searchCategory").addEventListener("change", searchProducts);
+
+
+    /* =========================================
+       PRODUCT FILTER
+    ========================================= */
+
+    function filterProducts(category, clickedButton) {
+        activeProductCategory = category;
+        const categorySelect = document.getElementById("searchCategory");
+        if (categorySelect) categorySelect.value = category;
+        document.querySelectorAll(".product-tab").forEach(button => button.classList.remove("active"));
+        clickedButton.classList.add("active");
+        applyProductFilters();
+    }
+
+    function showAllProducts(button) {
+        activeProductCategory = "";
+        const categorySelect = document.getElementById("searchCategory");
+        if (categorySelect) categorySelect.value = "";
+        document.querySelectorAll(".product-tab").forEach(item => item.classList.remove("active"));
+        button.classList.add("active");
+        applyProductFilters();
+    }
+
+
+    /* =========================================
+       CATEGORY FILTER
+    ========================================= */
+
+    function filterCategory(category) {
+        activeProductCategory = category;
+        const categorySelect = document.getElementById("searchCategory");
+        if (categorySelect) categorySelect.value = category;
+        const matchingTab = document.querySelector(`[data-category-filter="${category}"]`);
+        if (matchingTab) {
+            document.querySelectorAll(".product-tab").forEach(button => button.classList.remove("active"));
+            matchingTab.classList.add("active");
+        }
+        applyProductFilters();
+        document.getElementById("products").scrollIntoView({ behavior: "smooth" });
+    }
+
+
+    /* =========================================
+       WISHLIST
+    ========================================= */
+
+    async function toggleWishlist(button) {
+        button.disabled = true;
+        try {
+            const response = await fetch("{% url 'toggle_wishlist' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                    "X-CSRFToken": document.querySelector("#csrfTokenForm [name=csrfmiddlewaretoken]").value,
+                },
+                body: new URLSearchParams({ product_id: button.dataset.productId }),
+            });
+            const result = await response.json();
+            if (!response.ok || !result.ok) throw new Error("Could not update wishlist. Please try again.");
+            button.classList.toggle("active", result.added);
+            button.setAttribute("aria-pressed", String(result.added));
+            const icon = button.querySelector("i");
+            icon.classList.toggle("bi-heart-fill", result.added);
+            icon.classList.toggle("bi-heart", !result.added);
+            showToast(result.message);
+        } catch (error) {
+            showToast(error.message);
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+
+    /* =========================================
+       TOAST
+    ========================================= */
+
+    function showToast(message) {
+
+        const toast =
+            document.createElement("div");
+
+        const icon = document.createElement("i");
+        icon.className = "bi bi-check-circle-fill";
+        toast.append(icon, document.createTextNode(" " + message));
+
+        toast.style.position = "fixed";
+        toast.style.bottom = "25px";
+        toast.style.right = "25px";
+        toast.style.background = "#087443";
+        toast.style.color = "white";
+        toast.style.padding = "13px 18px";
+        toast.style.borderRadius = "7px";
+        toast.style.zIndex = "9999";
+        toast.style.boxShadow =
+            "0 8px 25px rgba(0,0,0,.2)";
+        toast.style.fontSize = "13px";
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+
+            toast.remove();
+
+        }, 2200);
+
+    }
+
+</script>
+
+
+<!-- Bootstrap JS -->
+
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
+</script>
+
+</body>
+</html>

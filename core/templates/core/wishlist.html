@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wishlist | SupplyHub</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>body{background:#f5f8f6;color:#17211b}.brand{color:#087443;font-weight:800;text-decoration:none;font-size:1.4rem}.card{border:1px solid #e3ebe6;border-radius:14px}.btn-green{background:#087443;color:white}.btn-green:hover{background:#045b35;color:white}.muted{color:#68756d}.product-icon{width:76px;height:76px;display:grid;place-items:center;background:#edf8f2;border-radius:12px;font-size:2.5rem}</style>
+</head>
+<body>
+<form id="csrfTokenForm" class="d-none">{% csrf_token %}</form>
+<header class="bg-white border-bottom py-3"><div class="container d-flex justify-content-between align-items-center"><a class="brand" href="{% url 'home' %}">SupplyHub</a><div class="d-flex gap-2"><a href="{% url 'cart' %}" class="btn btn-outline-success">Cart</a><a href="{% url 'home' %}#products" class="btn btn-green">Shop products</a></div></div></header>
+<main class="container py-5" style="max-width:960px"><h1 class="h2 mb-4"><i class="bi bi-heart-fill text-danger"></i> My wishlist</h1>
+  <div id="wishlistItems">
+  {% for product in wishlist_products %}
+  <article class="card shadow-sm mb-3" data-product-id="{{ product.pk }}"><div class="card-body p-3 p-md-4 d-flex flex-wrap align-items-center gap-3">
+    <div class="product-icon">{% if product.image_url %}<img src="{{ product.image_url }}" alt="{{ product.name }}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">{% else %}{{ product.icon }}{% endif %}</div>
+    <div class="flex-grow-1"><h2 class="h5 mb-1">{{ product.name }}</h2><div class="muted small">{{ product.category.name }} · MOQ {{ product.minimum_order_quantity }} {{ product.unit }}</div><strong class="text-success">₹{{ product.price }} / {{ product.unit }}</strong></div>
+    <div class="d-flex flex-wrap gap-2"><form method="post" action="{% url 'buy_now' product.pk %}">{% csrf_token %}<button class="btn btn-green" type="submit"><i class="bi bi-bag-check"></i> Buy Now</button></form><button class="btn btn-outline-danger" type="button" data-product-id="{{ product.pk }}" onclick="removeFromWishlist(this)"><i class="bi bi-heartbreak"></i> Remove</button></div>
+  </div></article>
+  {% empty %}
+  <div class="card text-center p-5" id="emptyWishlist"><div class="display-4 text-danger"><i class="bi bi-heart"></i></div><h2 class="h4 mt-3">Your wishlist is empty</h2><p class="muted">Save products with the heart button and they will appear here.</p><a class="btn btn-green align-self-center" href="{% url 'home' %}#products">Browse products</a></div>
+  {% endfor %}
+  </div>
+</main>
+<script>
+async function removeFromWishlist(button) {
+  button.disabled = true;
+  try {
+    const response = await fetch("{% url 'toggle_wishlist' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        "X-CSRFToken": document.querySelector("#csrfTokenForm [name=csrfmiddlewaretoken]").value,
+      },
+      body: new URLSearchParams({ product_id: button.dataset.productId }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error("Could not update wishlist.");
+    button.closest("article").remove();
+    if (!document.querySelector("#wishlistItems article")) {
+        window.location.reload();
+    }
+  } catch (error) {
+    button.disabled = false;
+    window.alert(error.message);
+  }
+}
+</script>
+</body>
+</html>

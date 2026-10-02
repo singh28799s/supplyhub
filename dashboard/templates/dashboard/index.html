@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SupplyHub Admin Panel</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f5f7fb;
+            color: #1f2937;
+            font-family: Arial, sans-serif;
+        }
+
+        /* SIDEBAR */
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100vh;
+            background: #111827;
+            color: white;
+            z-index: 1000;
+            transition: .3s;
+            overflow-y: auto;
+        }
+
+        .brand {
+            height: 70px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 22px;
+            font-size: 21px;
+            font-weight: 700;
+            border-bottom: 1px solid #273244;
+        }
+
+        .brand i {
+            font-size: 25px;
+        }
+
+        .menu {
+            padding: 18px 13px;
+        }
+
+        .menu-title {
+            color: #7f8a9c;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 15px 12px 7px;
+            letter-spacing: .5px;
+        }
+
+        .menu-item {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 12px;
+            margin-bottom: 4px;
+            color: #b5bfce;
+            text-decoration: none;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 0;
+            background: transparent;
+            text-align: left;
+        }
+
+        .menu-item:hover,
+        .menu-item.active {
+            background: #2563eb;
+            color: white;
+        }
+
+        .menu-item i {
+            width: 20px;
+            font-size: 17px;
+        }
+
+        .menu-badge {
+            margin-left: auto;
+            background: #ef4444;
+            color: white;
+            padding: 2px 7px;
+            border-radius: 20px;
+            font-size: 10px;
+        }
+
+        /* MAIN */
+
+        .main {
+            margin-left: 250px;
+            min-height: 100vh;
+        }
+
+        /* TOPBAR */
+
+        .topbar {
+            height: 70px;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            padding: 0 25px;
+            gap: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 900;
+        }
+
+        .menu-toggle {
+            display: none;
+            border: none;
+            background: transparent;
+            font-size: 25px;
+        }
+
+        .search {
+            width: 350px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 9px 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search input {
+            border: none;
+            outline: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        .top-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .notification {
+            border: none;
+            background: transparent;
+            font-size: 21px;
+            position: relative;
+        }
+
+        .notification-dot {
+            width: 7px;
+            height: 7px;
+            background: red;
+            position: absolute;
+            right: 1px;
+            top: 1px;
+            border-radius: 50%;
+        }
+
+        .admin-profile {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .avatar {
+            width: 38px;
+            height: 38px;
+            background: #2563eb;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .admin-info small {
+            display: block;
+            color: #9ca3af;
+        }
+
+        /* CONTENT */
+
+        .content {
+            padding: 28px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .page-header h2 {
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .page-header p {
+            color: #6b7280;
+            margin: 5px 0 0;
+        }
+
+        /* CARDS */
+
+        .card-box {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.04);
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+            font-size: 22px;
+        }
+
+        .blue {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .green {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .orange {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .purple {
+            background: #f3e8ff;
+            color: #9333ea;
+        }
+
+        .stat h3 {
+            margin: 2px 0;
+        }
+
+        .stat small {
+            color: #16a34a;
+        }
+
+        /* TABLE */
+
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 25px;
+        }
+
+        .table-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .table-title h5 {
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .status {
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .status-warning {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .status-info {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .status-danger {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        /* PRODUCT */
+
+        .product-img {
+            width: 45px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 7px;
+            background: #f3f4f6;
+        }
+
+        /* FORMS */
+
+        .form-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* SALE */
+
+        .sale-box {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 18px;
+            background: white;
+        }
+
+        .discount {
+            font-size: 25px;
+            font-weight: 700;
+            color: #dc2626;
+        }
+
+        /* SETTINGS */
+
+        .settings-nav {
+            border-right: 1px solid #e5e7eb;
+        }
+
+        .settings-btn {
+            width: 100%;
+            text-align: left;
+            border: none;
+            background: transparent;
+            padding: 12px;
+            border-radius: 7px;
+        }
+
+        .settings-btn:hover,
+        .settings-btn.active {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        /* MOBILE */
+
+        @media(max-width: 991px) {
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main {
+                margin-left: 0;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .search {
+                width: 250px;
+            }
+        }
+
+        @media(max-width: 576px) {
+
+            .topbar {
+                padding: 0 15px;
+            }
+
+            .search {
+                display: none;
+            }
+
+            .admin-info {
+                display: none;
+            }
+
+            .content {
+                padding: 15px;
+            }
+
+            .page-header {
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .page-header h2 {
+                font-size: 21px;
+            }
+
+            .page-header p {
+                font-size: 12px;
+            }
+
+            .page-header .btn {
+                font-size: 12px;
+                white-space: nowrap;
+            }
+
+            .table-card,
+            .card-box,
+            .form-card {
+                padding: 15px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+        }
+
+    </style>
+
+</head>
+
+<body data-active-page="{{ form_error_page }}">
+
+
+<!-- =====================================================
+SIDEBAR
+===================================================== -->
+
+<aside class="sidebar" id="sidebar">
+
+    <div class="brand">
+
+        <i class="bi bi-box-seam"></i>
+
+        SupplyHub
+
+    </div>
+
+
+    <div class="menu">
+
+
+        <div class="menu-title">
+            OVERVIEW
+        </div>
+
+
+        <button class="menu-item active"
+                onclick="showPage('dashboard', this)">
+
+            <i class="bi bi-grid-1x2-fill"></i>
+
+            Dashboard
+
+        </button>
+
+
+        <div class="menu-title">
+            CATALOG
+        </div>
+
+
+        <button class="menu-item"
+                onclick="showPage('products', this)">
+
+            <i class="bi bi-box-seam"></i>
+
+            Products
+
+            <span class="menu-badge">
+                {{ product_count }}
+            </span>
+
+        </button>
+
+
+        <button class="menu-item"
+                onclick="showPage('categories', this)">
+
+            <i class="bi bi-tags"></i>
+
+            Categories
+
+        </button>
+
+
+        <button class="menu-item"
+                onclick="showPage('sales', this)">
+
+            <i class="bi bi-percent"></i>
+
+            Sales & Offers
+
+        </button>
+
+
+        <div class="menu-title">
+            BUSINESS
+        </div>
+
+
+        <button class="menu-item"
+                onclick="showPage('orders', this)">
+
+            <i class="bi bi-cart3"></i>
+
+            Orders
+
+            <span class="menu-badge">
+                {{ pending_order_count }}
+            </span>
+
+        </button>
+
+
+        <button class="menu-item"
+                onclick="showPage('customers', this)">
+
+            <i class="bi bi-people"></i>
+
+            Customers
+
+        </button>
+
+
+        <button class="menu-item"
+                onclick="showPage('suppliers', this)">
+
+            <i class="bi bi-building"></i>
+
+            Suppliers
+
+        </button>
+
+
+        <button class="menu-item"
+                onclick="showPage('quotations', this)">
+
+            <i class="bi bi-file-earmark-text"></i>
+
+            Quotations / RFQ
+
+            <span class="menu-badge">{{ pending_quote_count }}</span>
+
+        </button>
+
+
+        <div class="menu-title">
+            WEBSITE
+        </div>
+
+
+        <button class="menu-item" onclick="showPage('settings', this)">
+            <i class="bi bi-gear"></i> Website Settings
+        </button>
+
+
+        <button class="menu-item" onclick="showPage('payment', this)">
+            <i class="bi bi-credit-card"></i> Payment &amp; Shipping
+        </button>
+
+
+        <div class="menu-title">
+            ACCOUNT
+        </div>
+
+
+        <form method="post" action="{% url 'admin:logout' %}" class="m-0">
+            {% csrf_token %}
+            <button class="menu-item" type="submit">
+                <i class="bi bi-box-arrow-right"></i>
+                Logout
+            </button>
+        </form>
+
+
+    </div>
+
+</aside>
+
+
+<!-- =====================================================
+MAIN
+===================================================== -->
+
+<div class="main">
+
+
+    <!-- TOPBAR -->
+
+    <header class="topbar">
+
+        <button class="menu-toggle"
+                onclick="toggleSidebar()">
+
+            <i class="bi bi-list"></i>
+
+        </button>
+
+
+        <div class="search">
+
+            <i class="bi bi-search"></i>
+
+                 <input type="text"
+                     id="dashboardSearch"
+                     placeholder="Search products, orders...">
+
+        </div>
+
+
+        <div class="top-right">
+
+            <button class="notification">
+
+                <i class="bi bi-bell"></i>
+
+                <span class="notification-dot"></span>
+
+            </button>
+
+
+            <div class="admin-profile">
+
+                <div class="avatar">
+                    A
+                </div>
+
+                <div class="admin-info">
+
+                    <strong>
+                        Admin
+                    </strong>
+
+                    <small>
+                        Administrator
+                    </small>
+
+                </div>
+
+                <i class="bi bi-chevron-down"></i>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <main class="content">
+
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %}" role="status">{{ message }}</div>
+        {% endfor %}
+
+
+        <!-- =================================================
+        DASHBOARD
+        ================================================= -->
+
+        <section id="dashboard" class="page active">
+
+
+            <div class="page-header">
+
+                <div>
+
+                    <h2>
+                        Dashboard
+                    </h2>
+
+                    <p>
+                        Manage your complete business from here.
+                    </p>
+
+                </div>
+
+
+                <a class="btn btn-primary" href="{% url 'admin:core_product_add' %}">
+                    <i class="bi bi-plus-lg"></i> Add Product
+                </a>
+
+            </div>
+
+
+            <div class="row g-4">
+
+
+                <div class="col-xl-3 col-md-6">
+
+                    <div class="card-box stat">
+
+                        <div class="stat-icon blue">
+
+                            <i class="bi bi-currency-rupee"></i>
+
+                        </div>
+
+                        <div>
+
+                            <small class="text-muted">
+                                Order Value
+                            </small>
+
+                            <h3>₹{{ total_sales|floatformat:2 }}</h3>
+
+                            <small>
+                                Non-cancelled orders; includes pending requests, not paid revenue
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-xl-3 col-md-6">
+
+                    <div class="card-box stat">
+
+                        <div class="stat-icon green">
+
+                            <i class="bi bi-cart-check"></i>
+
+                        </div>
+
+                        <div>
+
+                            <small class="text-muted">
+                                Orders
+                            </small>
+
+                            <h3>{{ order_count }}</h3>
+
+                            <small>
+                                {{ pending_order_count }} pending confirmation
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-xl-3 col-md-6">
+
+                    <div class="card-box stat">
+
+                        <div class="stat-icon orange">
+
+                            <i class="bi bi-box-seam"></i>
+
+                        </div>
+
+                        <div>
+
+                            <small class="text-muted">
+                                Products
+                            </small>
+
+                            <h3>{{ product_count }}</h3>
+
+                            <small class="text-muted">Active catalog products</small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-xl-3 col-md-6">
+
+                    <div class="card-box stat">
+
+                        <div class="stat-icon purple">
+
+                            <i class="bi bi-people"></i>
+
+                        </div>
+
+                        <div>
+
+                            <small class="text-muted">
+                                Customers
+                            </small>
+
+                            <h3>{{ customer_count }}</h3>
+
+                            <small>
+                                Registered customer accounts
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- RECENT ORDERS -->
+
+            <div class="table-card">
+
+                <div class="table-title">
+
+                    <div>
+
+                        <h5>
+                            Recent Orders
+                        </h5>
+
+                        <small class="text-muted">
+                            Latest customer orders
+                        </small>
+
+                    </div>
+
+                    <button class="btn btn-sm btn-outline-primary"
+                            onclick="showPageById('orders')">
+
+                        View All
+
+                    </button>
+
+                </div>
+
+
+                <div class="table-responsive">
+
+                    <table class="table align-middle">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>Order</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td><a href="{% url 'admin:core_order_change' order.pk %}" title="{{ order.reference }}"><strong>#{{ order.reference|truncatechars:13 }}</strong></a></td>
+                                <td>{{ order.customer_name }}</td>
+                                <td>₹{{ order.total_amount|floatformat:2 }}</td>
+                                <td><span class="status status-warning">{{ order.get_status_display }}</span></td>
+                                <td>{{ order.created_at|date:"d M Y" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-4">No orders have been placed yet.</td></tr>
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+        PRODUCTS
+        ================================================= -->
+
+        <section id="products" class="page">
+
+            <div class="page-header">
+
+                <div>
+
+                    <h2>
+                        Products
+                    </h2>
+
+                    <p>
+                        Manage products, prices, stock and MOQ.
+                    </p>
+
+                </div>
+
+
+                <a class="btn btn-primary" href="{% url 'admin:core_product_add' %}"><i class="bi bi-plus-lg"></i> Add Product</a>
+
+            </div>
+
+
+            <div class="table-card">
+
+                <div class="table-title">
+
+                    <h5>
+                        Product List
+                    </h5>
+
+                    <input
+                        class="form-control"
+                        style="max-width:250px"
+                        placeholder="Search product...">
+
+                </div>
+
+
+                <div class="table-responsive">
+
+                    <table class="table align-middle">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Wholesale</th>
+                                <th>Sample</th>
+                                <th>MOQ</th>
+                                <th>Status</th>
+                                <th>Action</th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            {% for product in products %}
+                            <tr>
+                                <td><strong>{{ product.name }}</strong></td>
+                                <td>{{ product.category.name }}</td>
+                                <td>₹{{ product.price|floatformat:2 }} / {{ product.unit }}</td>
+                                <td>{% if product.sample_price is not None %}₹{{ product.sample_price|floatformat:2 }} × {{ product.sample_quantity }}{% else %}Not set{% endif %}</td>
+                                <td>{{ product.minimum_order_quantity }} {{ product.unit }}</td>
+                                <td>{% if product.is_active %}<span class="status status-success">Active</span>{% else %}<span class="status status-warning">Inactive</span>{% endif %}</td>
+                                <td><a class="btn btn-sm btn-outline-primary" href="{% url 'admin:core_product_change' product.pk %}">Edit</a></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="7" class="text-center text-muted py-4">No products yet. Add your first catalog product.</td></tr>
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+        ADD PRODUCT
+        ================================================= -->
+
+        <section id="add-product" class="page">
+            <div class="page-header"><div><h2>Add Product</h2><p>Product records are saved in the catalog database.</p></div></div>
+            <div class="card-box"><p>Use the product form to set category, wholesale and offer prices, MOQ, sample price, supplier and visibility.</p><a class="btn btn-primary" href="{% url 'admin:core_product_add' %}">Open saved product form</a></div>
+
+        </section>
+
+
+        <!-- =================================================
+        SALES
+        ================================================= -->
+
+        <section id="sales" class="page">
+
+            <div class="page-header">
+
+                <div>
+
+                    <h2>
+                        Sales & Offers
+                    </h2>
+
+                    <p>
+                        Promotional prices configured on products.
+                    </p>
+
+                </div>
+
+
+                <a class="btn btn-primary" href="{% url 'admin:core_product_changelist' %}">Manage product prices</a>
+
+            </div>
+
+
+            <div class="row g-4">
+                {% for product in offer_products %}
+                <div class="col-lg-4">
+                    <div class="sale-box">
+                        <span class="status status-success">ACTIVE</span>
+                        <h4 class="mt-3">{{ product.name }}</h4>
+                        <div class="discount">₹{{ product.offer_price|floatformat:2 }}</div>
+                        <p class="text-muted">Was ₹{{ product.price|floatformat:2 }} / {{ product.unit }}</p>
+                        <p>Category: {{ product.category.name }}</p>
+                        <a class="btn btn-outline-primary btn-sm" href="{% url 'admin:core_product_change' product.pk %}">Edit offer</a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12"><div class="card-box text-muted">No product offers are active. Add an offer price to a product to list it here.</div></div>
+                {% endfor %}
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+        ORDERS
+        ================================================= -->
+
+        <section id="orders" class="page">
+
+            <div class="page-header">
+
+                <div>
+
+                    <h2>
+                        Orders
+                    </h2>
+
+                    <p>
+                        Manage customer orders.
+                    </p>
+
+                </div>
+
+                <a class="btn btn-primary" href="{% url 'admin:core_order_changelist' %}">Manage orders</a>
+
+            </div>
+
+
+            <div class="table-card">
+
+                <div class="table-responsive">
+
+                    <table class="table align-middle">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Email</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Action</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            {% for order in orders %}
+                            <tr>
+                                <td><a href="{% url 'admin:core_order_change' order.pk %}" title="{{ order.reference }}">#{{ order.reference|truncatechars:13 }}</a></td>
+                                <td>{{ order.customer_name }}</td>
+                                <td>{{ order.email }}</td>
+                                <td>{{ order.item_count }}</td>
+                                <td>₹{{ order.total_amount|floatformat:2 }}</td>
+                                <td><span class="status status-warning">{{ order.get_status_display }}</span></td>
+                                <td><a class="btn btn-sm btn-outline-primary" href="{% url 'admin:core_order_change' order.pk %}">View / update</a></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="7" class="text-center text-muted py-4">No customer orders yet.</td></tr>
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+        CUSTOMERS
+        ================================================= -->
+
+        <section id="customers" class="page">
+
+            <div class="page-header">
+
+                <div>
+
+                    <h2>
+                        Customers
+                    </h2>
+
+                    <p>
+                        Manage registered business customers.
+                    </p>
+
+                </div>
+
+                <a class="btn btn-outline-primary" href="{% url 'admin:auth_user_changelist' %}">Manage accounts</a>
+
+            </div>
+
+
+            <div class="table-card">
+
+                <div class="table-responsive">
+
+                    <table class="table align-middle">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>Business</th>
+                                <th>Contact</th>
+                                <th>Email</th>
+                                <th>Orders</th>
+                                <th>Total Purchase</th>
+                                <th>Status</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            {% for customer in customers %}
+                            <tr>
+                                <td>{{ customer.username }}</td>
+                                <td>{{ customer.get_full_name|default:customer.username }}</td>
+                                <td>{{ customer.email|default:"—" }}</td>
+                                <td>{{ customer.customer_order_count }}</td>
+                                <td>₹{{ customer.customer_total|default:0|floatformat:2 }}</td>
+                                <td><span class="status status-success">Active</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center text-muted py-4">No registered customer accounts yet.</td></tr>
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+        SUPPLIERS
+        ================================================= -->
+
+        <section id="suppliers" class="page">
+
+            <div class="page-header">
+
+                <div>
+
+                    <h2>
+                        Suppliers
+                    </h2>
+
+                    <p>
+                        Manage supplier accounts and approvals.
+                    </p>
+
+                </div>
+
+                <a class="btn btn-primary" href="{% url 'admin:core_supplier_add' %}">Add Supplier</a>
+
+            </div>
+
+
+            <div class="table-card">
+
+                <div class="table-responsive">
+
+                    <table class="table align-middle">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>Company</th>
+                                <th>Contact</th>
+                                <th>GSTIN</th>
+                                <th>Products</th>
+                                <th>Status</th>
+                                <th>Action</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            {% for supplier in suppliers %}
+                            <tr>
+                                <td>{{ supplier.company_name }}</td>
+                                <td>{{ supplier.contact_name|default:"—" }}</td>
+                                <td>{{ supplier.gstin|default:"—" }}</td>
+                                <td>{{ supplier.product_count }}</td>
+                                <td>{% if supplier.is_active %}<span class="status status-success">Active</span>{% else %}<span class="status status-warning">Inactive</span>{% endif %}</td>
+                                <td><a class="btn btn-sm btn-outline-primary" href="{% url 'admin:core_supplier_change' supplier.pk %}">Edit</a></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center text-muted py-4">No suppliers added yet.</td></tr>
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+        CATEGORIES
+        ================================================= -->
+
+        <section id="categories" class="page">
+
+            <div class="page-header">
+
+                <div>
+
+                    <h2>
+                        Categories
+                    </h2>
+
+                    <p>
+                        Manage product categories.
+                    </p>
+
+                </div>
+
+                <a class="btn btn-primary" href="{% url 'admin:core_category_add' %}">Add Category</a>
+
+            </div>
+
+
+            <div class="row g-3">
+                {% for category in categories %}
+                <div class="col-md-4">
+                    <div class="card-box">
+                        <h5>{{ category.icon }} {{ category.name }}</h5>
+                        <p class="text-muted">{{ category.product_count }} product{{ category.product_count|pluralize }}</p>
+                        <a class="btn btn-sm btn-outline-primary" href="{% url 'admin:core_category_change' category.pk %}">Edit</a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12"><div class="card-box text-muted">No categories created yet.</div></div>
+                {% endfor %}
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+        QUOTATIONS
+        ================================================= -->
+
+        <section id="quotations" class="page">
+
+            <div class="page-header">
+
+                <div>
+
+                    <h2>
+                        Quotations / RFQ
+                    </h2>
+
+                    <p>
+                        Manage bulk quotation requests.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="table-card">
+
+                <div class="table-responsive">
+
+                    <table class="table align-middle">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>RFQ</th>
+                                <th>Customer</th>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+                            {% for quote in quotes %}
+                            <tr>
+                                <td><a href="{% url 'admin:core_quoterequest_change' quote.pk %}" title="{{ quote.reference }}">#{{ quote.reference|truncatechars:13 }}</a></td>
+                                <td>{{ quote.business_name|default:quote.customer_name }}<div class="small text-muted">{{ quote.email }}</div></td>
+                                <td>{{ quote.product_name }}</td>
+                                <td>{{ quote.quantity }}</td>
+                                <td>{{ quote.created_at|date:"d M Y" }}</td>
+                                <td><span class="status status-warning">{{ quote.get_status_display }}</span></td>
+                                <td><a class="btn btn-sm btn-primary" href="{% url 'admin:core_quoterequest_change' quote.pk %}">Review / reply</a></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="7" class="text-center text-muted py-4">No quote requests yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+        WEBSITE SETTINGS
+        ================================================= -->
+
+        <section id="settings" class="page {% if form_error_page == 'settings' %}active{% endif %}">
+            <div class="page-header">
+                <div>
+                    <h2>Website Settings</h2>
+                    <p>These values power the public storefront header and contact details.</p>
+                </div>
+            </div>
+            {% for message in messages %}<div class="alert alert-success">{{ message }}</div>{% endfor %}
+            <div class="form-card">
+                <form method="post" action="{% url 'dashboard:index' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="store">
+                    {% for field in brand_form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>{{ field }}
+                        {% for error in field.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                    <button class="btn btn-primary" type="submit">Save Website Settings</button>
+                </form>
+            </div>
+        </section>
+
+
+        <!-- =================================================
+        PAYMENT & SHIPPING
+        ================================================= -->
+
+        <section id="payment" class="page {% if form_error_page == 'payment' %}active{% endif %}">
+            <div class="page-header">
+                <div>
+                    <h2>Payment &amp; Shipping</h2>
+                    <p>Configure manual payment methods and delivery charges. Online gateway payments require a separate provider integration.</p>
+                </div>
+            </div>
+            {% for message in messages %}<div class="alert alert-success">{{ message }}</div>{% endfor %}
+            <div class="form-card">
+                <form method="post" action="{% url 'dashboard:index' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="shipping">
+                    {% for field in shipping_form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>{{ field }}
+                        {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% for error in field.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                    {% for error in shipping_form.non_field_errors %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endfor %}
+                    <button class="btn btn-primary" type="submit">Save Payment &amp; Shipping</button>
+                </form>
+            </div>
+        </section>
+
+
+    </main>
+
+</div>
+
+
+<!-- =====================================================
+JAVASCRIPT
+===================================================== -->
+
+<script>
+
+    function showPage(pageId, element) {
+
+        // Hide all pages
+
+        document.querySelectorAll(".page").forEach(function(page) {
+
+            page.classList.remove("active");
+
+        });
+
+
+        // Show selected page
+
+        const page = document.getElementById(pageId);
+
+        if (page) {
+
+            page.classList.add("active");
+
+        }
+
+
+        // Remove active menu
+
+        document.querySelectorAll(".menu-item").forEach(function(item) {
+
+            item.classList.remove("active");
+
+        });
+
+
+        // Add active menu
+
+        if (element) {
+
+            element.classList.add("active");
+
+        }
+
+
+        // Close mobile sidebar
+
+        if (window.innerWidth <= 991) {
+
+            document
+                .getElementById("sidebar")
+                .classList.remove("show");
+
+        }
+
+    }
+
+
+    function showPageById(pageId) {
+
+        document.querySelectorAll(".page").forEach(function(page) {
+
+            page.classList.remove("active");
+
+        });
+
+
+        const page = document.getElementById(pageId);
+
+        if (page) {
+
+            page.classList.add("active");
+
+        }
+
+    }
+
+
+    function toggleSidebar() {
+
+        document
+            .getElementById("sidebar")
+            .classList.toggle("show");
+
+    }
+
+    document.getElementById("dashboardSearch").addEventListener("input", function () {
+        const query = this.value.trim().toLowerCase();
+        const activePage = document.querySelector(".page.active");
+        if (!activePage) return;
+        activePage.querySelectorAll("tbody tr").forEach(row => {
+            row.hidden = !row.innerText.toLowerCase().includes(query);
+        });
+        activePage.querySelectorAll(".sale-box, .card-box").forEach(card => {
+            card.hidden = !card.innerText.toLowerCase().includes(query);
+        });
+    });
+
+    if (document.body.dataset.activePage) {
+        showPage(document.body.dataset.activePage);
+    }
+
+</script>
+
+
+</body>
+</html>
