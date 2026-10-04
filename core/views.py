@@ -84,6 +84,25 @@ def home(request):
     )
 
 
+def product_detail(request, slug):
+    product = get_object_or_404(
+        Product.objects.select_related("category"),
+        slug=slug,
+        is_active=True,
+        category__is_active=True,
+    )
+    store_settings = StoreSettings.load()
+    return render(
+        request,
+        "core/product_detail.html",
+        {
+            "product": product,
+            "store_settings": store_settings,
+            "cart_count": sum(request.session.get("cart", {}).values()),
+        },
+    )
+
+
 def quote_request(request):
     initial = {}
     product_id = request.GET.get("product")
@@ -123,9 +142,33 @@ def add_to_cart(request):
         is_active=True,
         category__is_active=True,
     )
+    try:
+        quantity = int(request.POST.get("quantity", product.minimum_order_quantity))
+    except (TypeError, ValueError):
+        quantity = product.minimum_order_quantity
+
+    if quantity < 1:
+        return JsonResponse({"ok": False, "message": f"{product.name}: quantity must be at least 1."}, status=400)
+
+    if product.sample_price is not None and quantity == product.sample_quantity:
+        allowed_quantity = product.sample_quantity
+    else:
+        allowed_quantity = product.minimum_order_quantity
+
+    if quantity < allowed_quantity:
+        minimum_text = (
+            f"{product.sample_quantity} sample units"
+            if product.sample_price is not None and product.sample_quantity > 0
+            else f"{product.minimum_order_quantity}"
+        )
+        return JsonResponse(
+            {"ok": False, "message": f"{product.name}: minimum order is {minimum_text} {product.unit}."},
+            status=400,
+        )
+
     cart = request.session.get("cart", {})
     product_key = str(product.pk)
-    cart[product_key] = int(cart.get(product_key, 0)) + product.minimum_order_quantity
+    cart[product_key] = int(cart.get(product_key, 0)) + quantity
     request.session["cart"] = cart
     count = sum(cart.values())
     return JsonResponse({"ok": True, "cart_count": count, "message": f"{product.name} added to cart"})
@@ -139,7 +182,18 @@ def buy_now(request, product_id):
         is_active=True,
         category__is_active=True,
     )
-    request.session["cart"] = {str(product.pk): product.minimum_order_quantity}
+    try:
+        quantity = int(request.POST.get("quantity", product.minimum_order_quantity))
+    except (TypeError, ValueError):
+        quantity = product.minimum_order_quantity
+
+    minimum_quantity = product.sample_quantity if product.sample_price is not None and quantity == product.sample_quantity else product.minimum_order_quantity
+    if quantity < minimum_quantity:
+        unit_label = "" if product.sample_price is None else f" or sample quantity {product.sample_quantity}"
+        messages.error(request, f"{product.name}: minimum order is {minimum_quantity}{unit_label} {product.unit}.")
+        return redirect("product_detail", slug=product.slug)
+
+    request.session["cart"] = {str(product.pk): quantity}
     return redirect("checkout")
 
 

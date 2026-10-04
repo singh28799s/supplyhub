@@ -6,6 +6,7 @@ from .forms import CustomerAuthenticationForm
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("product/<slug:slug>/", views.product_detail, name="product_detail"),
     path("cart/", views.cart_detail, name="cart"),
     path("cart/add/", views.add_to_cart, name="add_to_cart"),
     path("buy-now/<int:product_id>/", views.buy_now, name="buy_now"),

@@ -15,7 +15,7 @@
   <div id="wishlistItems">
   {% for product in wishlist_products %}
   <article class="card shadow-sm mb-3" data-product-id="{{ product.pk }}"><div class="card-body p-3 p-md-4 d-flex flex-wrap align-items-center gap-3">
-    <div class="product-icon">{% if product.image_url %}<img src="{{ product.image_url }}" alt="{{ product.name }}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">{% else %}{{ product.icon }}{% endif %}</div>
+    <div class="product-icon">{% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">{% elif product.image_url %}<img src="{{ product.image_url }}" alt="{{ product.name }}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">{% else %}{{ product.icon }}{% endif %}</div>
     <div class="flex-grow-1"><h2 class="h5 mb-1">{{ product.name }}</h2><div class="muted small">{{ product.category.name }} · MOQ {{ product.minimum_order_quantity }} {{ product.unit }}</div><strong class="text-success">₹{{ product.price }} / {{ product.unit }}</strong></div>
     <div class="d-flex flex-wrap gap-2"><form method="post" action="{% url 'buy_now' product.pk %}">{% csrf_token %}<button class="btn btn-green" type="submit"><i class="bi bi-bag-check"></i> Buy Now</button></form><button class="btn btn-outline-danger" type="button" data-product-id="{{ product.pk }}" onclick="removeFromWishlist(this)"><i class="bi bi-heartbreak"></i> Remove</button></div>
   </div></article>

@@ -68,6 +68,17 @@
             padding: 15px 0;
         }
 
+        .main-header .row {
+            display: flex;
+            align-items: center;
+            flex-wrap: nowrap;
+            min-width: 0;
+        }
+
+        .main-header .row > [class*="col-"] {
+            min-width: 0;
+        }
+
         .logo {
             display: inline-flex;
             align-items: center;
@@ -75,6 +86,7 @@
             color: var(--green);
             font-size: 28px;
             font-weight: 800;
+            min-width: 0;
         }
 
         .logo-icon {
@@ -94,6 +106,9 @@
         .search-wrapper {
             height: 46px;
             display: flex;
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
             border: 1px solid #d5dbd8;
             border-radius: 8px;
             overflow: hidden;
@@ -101,6 +116,7 @@
         }
 
         .search-category {
+            flex: 0 0 125px;
             width: 125px;
             border: none;
             border-right: 1px solid var(--border);
@@ -109,10 +125,12 @@
             color: #555;
             background: white;
             font-size: 13px;
+            min-width: 0;
         }
 
         .search-input {
-            flex: 1;
+            flex: 1 1 auto;
+            min-width: 0;
             border: none;
             outline: none;
             padding: 0 15px;
@@ -137,15 +155,28 @@
         .header-actions {
             display: flex;
             justify-content: flex-end;
-            gap: 22px;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            min-width: 0;
+            width: 100%;
         }
 
         .header-action {
             position: relative;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             text-align: center;
             color: #333;
             font-size: 11px;
-            min-width: 45px;
+            min-width: 38px;
+            max-width: 100%;
+            flex: 0 0 auto;
+            white-space: nowrap;
+            line-height: 1.2;
         }
 
         .header-action i {
@@ -496,11 +527,25 @@
             justify-content: center;
             font-size: 85px;
             position: relative;
+            overflow: hidden;
         }
 
         .product-image img {
             position: absolute;
             inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            z-index: 0;
+        }
+
+        .product-image > span {
+            position: relative;
+            z-index: 1;
+            display: block;
+            font-size: 72px;
+            line-height: 1;
         }
 
         .product-badge {
@@ -1120,50 +1165,6 @@
 
 
 <!-- =====================================================
-     TOP BAR
-===================================================== -->
-
-<div class="top-bar">
-
-    <div class="container">
-
-        <div class="d-flex justify-content-between">
-
-            <div class="d-flex gap-4">
-
-                <div class="top-bar-item">
-                    <i class="bi bi-geo-alt"></i>
-                    Trusted Wholesale Supplier
-                </div>
-
-                <div class="top-bar-item">
-                    {{ store_settings.delivery_note|default:"Wholesale delivery available" }}
-                </div>
-
-            </div>
-
-            <div class="top-bar-right d-flex gap-4">
-
-                <div class="top-bar-item">
-                    <i class="bi bi-telephone"></i>
-                    {{ store_settings.support_phone|default:"Contact us for wholesale enquiries" }}
-                </div>
-
-                <div class="top-bar-item">
-                    <i class="bi bi-receipt"></i>
-                    Bulk pricing available on request
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- =====================================================
      HEADER
 ===================================================== -->
 
@@ -1683,7 +1684,9 @@
                     <div class="product-image">
                         {% if product.badge %}<span class="product-badge">{{ product.badge }}</span>{% endif %}
                         <button class="wishlist-button {% if product.pk|stringformat:'s' in wishlist_ids %}active{% endif %}" type="button" aria-label="Toggle {{ product.name }} in wishlist" aria-pressed="{% if product.pk|stringformat:'s' in wishlist_ids %}true{% else %}false{% endif %}" data-product-id="{{ product.pk }}" onclick="toggleWishlist(this)"><i class="bi {% if product.pk|stringformat:'s' in wishlist_ids %}bi-heart-fill{% else %}bi-heart{% endif %}"></i></button>
-                        {% if product.image_url %}
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width:100%;height:100%;object-fit:cover">
+                        {% elif product.image_url %}
                         <img src="{{ product.image_url }}" alt="{{ product.name }}" style="width:100%;height:100%;object-fit:cover">
                         {% else %}
                         <span aria-hidden="true">{{ product.icon }}</span>
@@ -1704,6 +1707,7 @@
                         <button class="add-cart-button" type="button" data-product-id="{{ product.pk }}" data-product-name="{{ product.name }}" onclick="addToCart(this)">
                             <i class="bi bi-cart-plus"></i> Add to Cart
                         </button>
+                        <a class="btn btn-outline-success btn-sm w-100 mt-2" href="{% url 'product_detail' product.slug %}"><i class="bi bi-info-circle"></i> View Details</a>
                         <form method="post" action="{% url 'buy_now' product.pk %}">
                             {% csrf_token %}
                             <button class="buy-now-button" type="submit"><i class="bi bi-bag-check"></i> Buy Now</button>

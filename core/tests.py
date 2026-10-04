@@ -43,6 +43,18 @@ class HomePageTests(TestCase):
 
         self.assertEqual(response.context["categories"][0].product_count, 1)
 
+    def test_product_detail_page_loads_with_description_and_images(self):
+        self.product.description = "Heavy-duty reusable bag for retail and events."
+        self.product.save()
+
+        response = self.client.get(reverse("product_detail", args=[self.product.slug]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.product.name)
+        self.assertContains(response, "Heavy-duty reusable bag for retail and events.")
+        self.assertContains(response, "Minimum order")
+        self.assertContains(response, "Cash on delivery")
+
 
 class CustomerAuthenticationTests(TestCase):
     def test_registration_creates_customer_and_logs_them_in(self):

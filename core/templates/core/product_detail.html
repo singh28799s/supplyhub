@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product.name }} | SupplyHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background: #f7f8f7;
+            color: #17211b;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        .page-shell {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .product-detail-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.05);
+        }
+        .detail-image-wrap {
+            position: relative;
+            background: #eef5f1;
+            min-height: 420px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .detail-image-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .detail-image-wrap .fallback {
+            font-size: 110px;
+            line-height: 1;
+        }
+        .product-info {
+            padding: 30px;
+        }
+        .product-badge {
+            display: inline-block;
+            background: #edf8f2;
+            color: #087443;
+            border: 1px solid #cfe9d8;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .product-title {
+            font-size: clamp(28px, 3vw, 42px);
+            font-weight: 800;
+            margin-bottom: 14px;
+        }
+        .product-price {
+            font-size: 32px;
+            font-weight: 800;
+            color: #087443;
+            margin-bottom: 14px;
+        }
+        .product-price small {
+            font-size: 14px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            color: #4b5563;
+            margin-bottom: 18px;
+            font-size: 14px;
+        }
+        .product-description {
+            line-height: 1.8;
+            color: #374151;
+            font-size: 16px;
+            margin-bottom: 22px;
+        }
+        .purchase-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 18px;
+        }
+        .btn-primary-green {
+            background: #087443;
+            border: 0;
+            color: white;
+            padding: 12px 22px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+        .btn-primary-green:hover {
+            background: #045b35;
+            color: white;
+        }
+        .btn-outline-green {
+            border: 1px solid #087443;
+            color: #087443;
+            background: white;
+            padding: 12px 22px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+        .btn-outline-green:hover {
+            background: #edf8f2;
+            color: #087443;
+        }
+        .details-box {
+            background: #f8fbf9;
+            border: 1px solid #e4efe7;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .details-box h3 {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+        .spec-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(180px, 1fr));
+            gap: 10px 18px;
+            margin-top: 10px;
+        }
+        .spec-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+        .spec-label {
+            display: block;
+            color: #6b7280;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+        .spec-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #17211b;
+        }
+        @media (max-width: 767.98px) {
+            .detail-image-wrap {
+                min-height: 280px;
+            }
+            .product-info {
+                padding: 20px 16px;
+            }
+            .purchase-actions {
+                flex-direction: column;
+            }
+            .purchase-actions .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+        <div class="mb-4">
+            <a href="{% url 'home' %}" class="btn btn-link text-success p-0 text-decoration-none">
+                <i class="bi bi-arrow-left"></i> Back to products
+            </a>
+        </div>
+
+        <div class="product-detail-card row g-0">
+            <div class="col-lg-6">
+                <div class="detail-image-wrap">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                    {% elif product.image_url %}
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                    {% else %}
+                        <span class="fallback" aria-hidden="true">{{ product.icon }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="product-info">
+                    {% if product.badge %}
+                        <span class="product-badge">{{ product.badge }}</span>
+                    {% endif %}
+
+                    <div class="product-title">{{ product.name }}</div>
+
+                    <div class="product-price">
+                        ₹{{ product.wholesale_price }} <small>/ {{ product.unit }} wholesale</small>
+                    </div>
+
+                    <div class="meta-row">
+                        <span><i class="bi bi-box-seam"></i> MOQ {{ product.minimum_order_quantity }} {{ product.unit }}</span>
+                        <span><i class="bi bi-tag"></i> {{ product.category.name }}</span>
+                    </div>
+
+                    {% if product.offer_price and product.offer_price < product.price %}
+                        <div class="mb-3 text-success fw-semibold">
+                            Special offer: ₹{{ product.offer_price }} / {{ product.unit }}
+                        </div>
+                    {% endif %}
+
+                    {% if product.sample_price is not None %}
+                        <div class="mb-3 text-success fw-semibold">
+                            Sample available: ₹{{ product.sample_price }} for {{ product.sample_quantity }} {{ product.unit }}
+                        </div>
+                    {% endif %}
+
+                    <div class="product-description">
+                        {% if product.description %}
+                            {{ product.description }}
+                        {% else %}
+                            Premium wholesale-quality product designed for bulk buyers, resellers, and businesses that need reliable stock with consistent quality.
+                        {% endif %}
+                    </div>
+
+                    <div class="purchase-actions" style="align-items:flex-end;">
+                        <div class="d-flex flex-column gap-2">
+                            <label for="detail-quantity" class="small text-muted mb-0">Quantity</label>
+                            <input id="detail-quantity" type="number" name="quantity" value="{{ product.minimum_order_quantity }}" min="{{ product.minimum_order_quantity }}" step="1" class="form-control" style="max-width:130px;">
+                        </div>
+
+                        <form method="post" action="{% url 'add_to_cart' %}" class="d-inline-block">
+                            {% csrf_token %}
+                            <input type="hidden" name="product_id" value="{{ product.pk }}">
+                            <input type="hidden" name="quantity" value="{{ product.minimum_order_quantity }}" id="add-cart-quantity">
+                            <button class="btn btn-primary-green" type="submit" onclick="document.getElementById('add-cart-quantity').value = document.getElementById('detail-quantity').value;">
+                                <i class="bi bi-cart-plus"></i> Add to Cart
+                            </button>
+                        </form>
+
+                        <form method="post" action="{% url 'buy_now' product.pk %}" class="d-inline-block">
+                            {% csrf_token %}
+                            <input type="hidden" name="quantity" value="{{ product.minimum_order_quantity }}" id="buy-now-quantity">
+                            <button class="btn btn-outline-green" type="submit" onclick="document.getElementById('buy-now-quantity').value = document.getElementById('detail-quantity').value;">
+                                <i class="bi bi-bag-check"></i> Buy Now
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="details-box mt-4">
+                        <h3>Product details</h3>
+                        <ul class="mb-0 ps-3">
+                            <li><strong>Category:</strong> {{ product.category.name }}</li>
+                            <li><strong>Minimum order:</strong> {{ product.minimum_order_quantity }} {{ product.unit }}</li>
+                            <li><strong>Wholesale pricing:</strong> ₹{{ product.wholesale_price }} / {{ product.unit }}</li>
+                            {% if product.offer_price and product.offer_price < product.price %}
+                            <li><strong>Offer price:</strong> ₹{{ product.offer_price }} / {{ product.unit }}</li>
+                            {% endif %}
+                            {% if product.sample_price is not None %}
+                            <li><strong>Sample option:</strong> {{ product.sample_quantity }} {{ product.unit }} for ₹{{ product.sample_price }}</li>
+                            {% endif %}
+                            <li><strong>Delivery:</strong> {{ store_settings.delivery_note|default:"Wholesale delivery available" }}</li>
+                            <li><strong>Support:</strong> {{ store_settings.support_phone|default:"Contact support" }}</li>
+                        </ul>
+                    </div>
+
+                    <div class="details-box mt-3">
+                        <h3>Product specifications</h3>
+                        <div class="spec-grid">
+                            <div class="spec-item">
+                                <span class="spec-label">Product</span>
+                                <span class="spec-value">{{ product.name }}</span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-label">Category</span>
+                                <span class="spec-value">{{ product.category.name }}</span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-label">MOQ</span>
+                                <span class="spec-value">{{ product.minimum_order_quantity }} {{ product.unit }}</span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-label">Wholesale price</span>
+                                <span class="spec-value">₹{{ product.wholesale_price }}</span>
+                            </div>
+                            {% if product.offer_price and product.offer_price < product.price %}
+                            <div class="spec-item">
+                                <span class="spec-label">Offer price</span>
+                                <span class="spec-value">₹{{ product.offer_price }}</span>
+                            </div>
+                            {% endif %}
+                            {% if product.sample_price is not None %}
+                            <div class="spec-item">
+                                <span class="spec-label">Sample price</span>
+                                <span class="spec-value">₹{{ product.sample_price }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="spec-item">
+                                <span class="spec-label">Packaging</span>
+                                <span class="spec-value">Bulk packs / {{ product.unit }}</span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-label">Delivery</span>
+                                <span class="spec-value">{{ store_settings.delivery_note|default:"Wholesale delivery available" }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="details-box mt-3">
+                        <h3>Payment & order info</h3>
+                        <ul class="mb-0 ps-3">
+                            {% if store_settings.cash_on_delivery_enabled %}
+                            <li>Cash on delivery</li>
+                            {% endif %}
+                            {% if store_settings.bank_transfer_enabled %}
+                            <li>Bank transfer</li>
+                            {% if store_settings.bank_transfer_instructions %}
+                            <li>{{ store_settings.bank_transfer_instructions }}</li>
+                            {% endif %}
+                            {% endif %}
+                            {% if not store_settings.cash_on_delivery_enabled and not store_settings.bank_transfer_enabled %}
+                            <li>Payment options are being updated. Please contact the supplier.</li>
+                            {% endif %}
+                            <li>Shipping charge: ₹{{ store_settings.shipping_charge }}</li>
+                            {% if store_settings.free_shipping_threshold %}
+                            <li>Free shipping over ₹{{ store_settings.free_shipping_threshold }}</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <div class="details-box mt-3">
+                        <h3>Need a custom bulk quote?</h3>
+                        <p class="mb-3 text-muted">Tell us your quantity and order requirements and we will send a tailored wholesale rate.</p>
+                        <a class="btn btn-primary-green w-100 mb-2" href="{% url 'quote_request' %}?product={{ product.pk }}">
+                            <i class="bi bi-file-earmark-text"></i> Request Bulk Quote
+                        </a>
+                        {% if store_settings.support_phone %}
+                        <a class="btn btn-outline-green w-100" href="https://wa.me/{{ store_settings.support_phone|cut:'+'|cut:' '|cut:'-'|cut:'(' |cut:')' }}?text={{ product.name|urlencode }}%20-%20I%20want%20to%20place%20a%20bulk%20order" target="_blank" rel="noopener noreferrer">
+                            <i class="bi bi-whatsapp"></i> WhatsApp Supplier
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
