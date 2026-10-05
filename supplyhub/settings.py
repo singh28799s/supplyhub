@@ -7,9 +7,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-change-this-before-deployment"
 DEBUG = True
 ALLOWED_HOSTS = [
+    "supplyhub-5bdm.onrender.com",
     "localhost",
     "127.0.0.1",
-    "[::1]",
 ]
 
 if not DEBUG:
