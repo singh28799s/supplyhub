@@ -11,7 +11,8 @@ class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=110, unique=True, blank=True)
     description = models.TextField(blank=True)
-    icon = models.CharField(max_length=12, default="📦")
+    
+    image=models.ImageField(upload_to="categories/", blank=True, null=True)
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveSmallIntegerField(default=0)
 
@@ -86,8 +87,8 @@ class Product(models.Model):
     unit = models.CharField(max_length=30, default="piece")
     minimum_order_quantity = models.PositiveIntegerField(default=1)
     badge = models.CharField(max_length=40, blank=True)
-    icon = models.CharField(max_length=12, default="📦")
     image = models.ImageField(upload_to="products/", blank=True, null=True)
+    
     image_url = models.URLField(blank=True)
     is_featured = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
