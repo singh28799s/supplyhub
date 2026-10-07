@@ -1,6 +1,7 @@
 """Django settings for the SupplyHub project."""
 from pathlib import Path
 import os
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -79,11 +80,22 @@ TEMPLATES = [
 WSGI_APPLICATION = "supplyhub.wsgi.application"
 ASGI_APPLICATION = "supplyhub.asgi.application"
 
+
+#DATABASE CODE 
+#DATABASES = {
+ #   "default": {
+ #       "ENGINE": "django.db.backends.sqlite3",
+ #       "NAME": BASE_DIR / "db.sqlite3",
+  #  }
+#}
+
+
+
+# Use PostgreSQL on Render via DATABASE_URL; keep SQLite as the local fallback
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": dj_database_url.config(
+        default="sqlite:///" + str(BASE_DIR / "db.sqlite3")
+    )
 }
 
 AUTH_PASSWORD_VALIDATORS = [
