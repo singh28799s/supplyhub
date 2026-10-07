@@ -2,6 +2,7 @@
 from pathlib import Path
 import os
 import dj_database_url
+import cloudinary
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -133,3 +134,20 @@ DEFAULT_FROM_EMAIL = os.getenv(
     EMAIL_HOST_USER or "SupplyHub <no-reply@supplyhub.local>",
 )
 SUPPLYHUB_ADMIN_EMAIL = os.getenv("SUPPLYHUB_ADMIN_EMAIL", "")
+
+
+# Cloudinary configuration
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True,
+)
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
