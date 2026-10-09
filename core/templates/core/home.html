@@ -444,16 +444,23 @@
             border-color: #c8ddd2;
         }
 
-        .category-image {
-            height: 125px;
-            border-radius: 9px;
-            background: var(--green-light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 55px;
-            margin-bottom: 14px;
-        }
+       .category-icon {
+    height: 125px;
+    border-radius: 9px;
+    background: var(--green-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    overflow: hidden;
+}
+
+.category-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
 
         .category-card h6 {
             margin-bottom: 4px;
