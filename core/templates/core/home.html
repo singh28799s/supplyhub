@@ -423,6 +423,8 @@
         ===================================================== */
 
         .category-card {
+            display: block;
+            width: 100%;
             background: white;
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -431,6 +433,8 @@
             transition: .25s;
             cursor: pointer;
             height: 100%;
+            font: inherit;
+            color: inherit;
         }
 
         .category-card:focus-visible {
@@ -444,23 +448,24 @@
             border-color: #c8ddd2;
         }
 
-       .category-icon {
-    height: 125px;
-    border-radius: 9px;
-    background: var(--green-light);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 14px;
-    overflow: hidden;
-}
+        .category-icon {
+            height: 125px;
+            border-radius: 9px;
+            background: var(--green-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+            padding: 10px;
+            overflow: hidden;
+        }
 
-.category-icon img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-}
+        .category-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
 
         .category-card h6 {
             margin-bottom: 4px;
@@ -985,9 +990,10 @@
 
             /* CATEGORY */
 
-            .category-image {
+            .category-icon {
                 height: 95px;
-                font-size: 43px;
+                margin-bottom: 10px;
+                padding: 8px;
             }
 
             .category-card {
@@ -1643,16 +1649,12 @@
         <div class="row g-3">
             {% for category in categories %}
             <div class="col-6 col-md-4 col-lg-3">
-                <button class="category-card w-100 border-0" type="button" onclick="filterCategory('{{ category.slug }}')">
-                   <div class="category-icon">
-    {% if category.image %}
-        <img
-            src="{{ category.image.url }}"
-            alt="{{ category.name }}"
-            style="width:60px; height:60px; object-fit:contain;"
-        >
-    {% endif %}
-</div>
+                <button class="category-card" type="button" onclick="filterCategory('{{ category.slug }}')">
+                    <div class="category-icon">
+                        {% if category.image %}
+                        <img src="{{ category.image.url }}" alt="{{ category.name }}">
+                        {% endif %}
+                    </div>
                     <h6>{{ category.name }}</h6>
                     <small>{{ category.product_count }} product{{ category.product_count|pluralize }}</small>
                 </button>
