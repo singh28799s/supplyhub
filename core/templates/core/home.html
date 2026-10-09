@@ -467,6 +467,11 @@
             display: block;
         }
 
+        .category-image-fallback {
+            color: var(--green);
+            font-size: 32px;
+        }
+
         .category-card h6 {
             margin-bottom: 4px;
             font-weight: 700;
@@ -1652,8 +1657,17 @@
                 <button class="category-card" type="button" onclick="filterCategory('{{ category.slug }}')">
                     <div class="category-icon">
                         {% if category.image %}
-                        <img src="{{ category.image.url }}" alt="{{ category.name }}">
+                        <img
+                            src="{{ category.image.url }}"
+                            alt="{{ category.name }}"
+                            onerror="this.hidden = true; this.nextElementSibling.hidden = false;"
+                        >
                         {% endif %}
+                        <i
+                            class="bi bi-image category-image-fallback"
+                            aria-hidden="true"
+                            {% if category.image %}hidden{% endif %}
+                        ></i>
                     </div>
                     <h6>{{ category.name }}</h6>
                     <small>{{ category.product_count }} product{{ category.product_count|pluralize }}</small>
