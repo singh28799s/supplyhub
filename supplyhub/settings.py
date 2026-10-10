@@ -133,6 +133,14 @@ DATABASES = {
         ssl_require=not DEBUG,
     )
 }
+print("DEBUG:", DEBUG)
+print("DJANGO_ENV:", DJANGO_ENV)
+print("DATABASE_URL present:", bool(database_url))
+print("DATABASE CONFIG:", {
+    key: value
+    for key, value in DATABASES["default"].items()
+    if key not in {"PASSWORD", "USER", "HOST", "NAME"}
+})
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
