@@ -1,0 +1,80 @@
+{% extends "core/seller/base.html" %}
+{% block title %}Seller orders{% endblock %}
+{% block content %}
+<div class="seller-page-heading">
+    <div><h1>Orders for your products</h1><p>Update only your part of a customer's order. Marketplace order status and other sellers' items remain separate.</p></div>
+</div>
+{% if seller.status != 'approved' %}<div class="alert alert-warning">Your seller account is not approved. Order management is available after approval.</div>{% endif %}
+{% for seller_order in orders %}
+<article class="seller-card mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+        <div><h2 class="h5 mb-1">Order #{{ seller_order.order.pk }}</h2><span class="seller-muted">Placed {{ seller_order.created_at|date:"M j, Y, P" }}</span></div>
+        {% if seller_order.order.status == 'cancelled' %}<span class="seller-status seller-status-rejected">Customer cancelled</span>{% else %}<span class="seller-status">{{ seller_order.get_status_display }}</span>{% endif %}
+    </div>
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <h3 class="h6">Your order items</h3>
+            <div class="seller-table-wrap"><table class="table table-sm align-middle"><thead><tr><th>Product</th><th>Quantity</th><th>Unit price</th><th>Line total</th></tr></thead><tbody>
+                {% for item in seller_order.items.all %}<tr><td>{{ item.product_name }}{% if item.is_sample %} <span class="badge text-bg-info">Sample</span>{% endif %}</td><td>{{ item.quantity }} {{ item.unit }}</td><td>₹{{ item.unit_price|floatformat:2 }}</td><td>₹{{ item.line_total|floatformat:2 }}</td></tr>{% endfor %}
+            </tbody></table></div>
+            <p class="mb-0"><strong>Your item subtotal:</strong> ₹{{ seller_order.subtotal|floatformat:2 }}</p>
+        </div>
+        <div class="col-lg-5">
+            <h3 class="h6">Buyer and delivery</h3>
+            <p class="mb-1"><strong>{{ seller_order.order.customer_name }}</strong></p>
+            <p class="seller-muted mb-1">{{ seller_order.order.email }}{% if seller_order.order.phone %} · {{ seller_order.order.phone }}{% endif %}</p>
+            <p class="seller-muted mb-3">{{ seller_order.order.delivery_address }}, {{ seller_order.order.city }} {{ seller_order.order.postal_code }}</p>
+            {% if seller_order.order.notes %}<p><strong>Buyer notes:</strong> {{ seller_order.order.notes }}</p>{% endif %}
+            {% if seller.is_approved and seller_order.order.status != 'cancelled' and seller_order.status != 'shipped' and seller_order.status != 'completed' %}
+            <form method="post" action="{% url 'seller_order_update' seller_order.pk %}">
+                {% csrf_token %}
+                <label for="status-{{ seller_order.pk }}" class="form-label fw-semibold">Next status</label>
+                <select class="form-select mb-2" id="status-{{ seller_order.pk }}" name="status">
+                    <option value="{{ seller_order.status }}">{{ seller_order.get_status_display }}</option>
+                    {% if seller_order.status == 'pending' %}<option value="confirmed">Confirmed</option>{% elif seller_order.status == 'confirmed' %}<option value="processing">Processing</option>{% endif %}
+                </select>
+                <label for="notes-{{ seller_order.pk }}" class="form-label fw-semibold">Seller note</label>
+                <textarea class="form-control mb-2" id="notes-{{ seller_order.pk }}" name="seller_notes" rows="2">{{ seller_order.seller_notes }}</textarea>
+                <button class="seller-button" type="submit">Save order update</button>
+            </form>
+            {% endif %}
+            {% if seller_order.order.status != 'cancelled' and seller_order.status == 'processing' and seller.is_approved and not seller_order.delhivery_waybill %}
+                {% if delhivery_configured %}
+                <form method="post" action="{% url 'seller_shipment_create' seller_order.pk %}" class="border-top mt-3 pt-3">
+                    {% csrf_token %}
+                    <h3 class="h6">Book Delhivery shipment</h3>
+                    <p class="seller-muted small">Product shipping details are estimates. Confirm the final packed parcel weight and size before booking.</p>
+                    {% for field in seller_order.shipment_form %}
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endfor %}
+                    <button class="seller-button" type="submit">Create shipment &amp; get waybill</button>
+                </form>
+                {% else %}
+                <div class="alert alert-warning mt-3 mb-0">Delhivery shipping is not configured. Ask the SupplyHub administrator to set up the carrier API.</div>
+                {% endif %}
+            {% endif %}
+            {% if seller_order.delhivery_waybill %}
+            <div class="border-top mt-3 pt-3">
+                <p class="mb-2"><strong>Delhivery tracking:</strong> {{ seller_order.delhivery_status }}<br><span class="seller-muted small">Waybill {{ seller_order.delhivery_waybill }}</span></p>
+                {% if seller_order.order.status != 'cancelled' and seller.is_approved and seller_order.status != 'completed' %}
+                <form method="post" action="{% url 'seller_shipment_refresh' seller_order.pk %}">
+                    {% csrf_token %}
+                    <button class="seller-button seller-button-outline" type="submit">Refresh delivery status</button>
+                </form>
+                {% endif %}
+                {% if seller_order.delivered_at %}
+                <p class="seller-muted small mt-2 mb-0">Delivered {{ seller_order.delivered_at|date:"M j, Y, P" }}{% if seller_order.payout.available_at %}; payout hold ends {{ seller_order.payout.available_at|date:"M j, Y, P" }}{% endif %}.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</article>
+{% empty %}
+<div class="seller-card text-center py-5"><h2 class="h5">No orders yet</h2><p class="seller-muted mb-0">Orders that contain your products appear here.</p></div>
+{% endfor %}
+{% endblock %}

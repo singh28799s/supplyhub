@@ -1,0 +1,7 @@
+<span class="site-brand-mark {{ brand_mark_class }}">
+    {% if store_settings.logo %}
+    <img class="site-brand-logo" src="{{ store_settings.logo.url }}" alt="{{ store_settings.store_name }}">
+    {% else %}
+    <i class="bi {{ store_settings.brand_icon }}"></i>
+    {% endif %}
+</span>

@@ -1,0 +1,32 @@
+{% extends "core/seller/base.html" %}
+{% block title %}Buyer quote inquiries{% endblock %}
+{% block content %}
+<div class="seller-page-heading">
+    <div><h1>Buyer quote inquiries</h1><p>Review requests tied to your products and send the buyer your unit price or requirements reply.</p></div>
+</div>
+{% if seller.status != 'approved' %}<div class="alert alert-warning">Your seller account is not approved. Quote responses are available after approval.</div>{% endif %}
+{% for quote in quotes %}
+<article class="seller-card mb-3">
+    <div class="d-flex flex-wrap justify-content-between gap-2">
+        <div><h2 class="h5 mb-1">{{ quote.product_name|default:"Wholesale inquiry" }}</h2><p class="seller-muted mb-2">{{ quote.quantity }} requested · {{ quote.created_at|date:"M j, Y, P" }} · {{ quote.customer_name }}{% if quote.business_name %} · {{ quote.business_name }}{% endif %}</p></div>
+        <span class="seller-status">{{ quote.get_status_display }}</span>
+    </div>
+    <p><strong>Buyer contact:</strong> <a href="mailto:{{ quote.email }}">{{ quote.email }}</a>{% if quote.phone %} · {{ quote.phone }}{% endif %}</p>
+    {% if quote.message %}<div class="p-3 rounded bg-light mb-3"><strong>Buyer requirements</strong><p class="mb-0">{{ quote.message|linebreaksbr }}</p></div>{% endif %}
+    {% if quote.seller_responded_at %}<p><strong>Your last reply:</strong> {{ quote.seller_response|linebreaksbr }}{% if quote.seller_quoted_unit_price %}<br>Unit price: ₹{{ quote.seller_quoted_unit_price|floatformat:2 }}{% endif %}</p>{% endif %}
+    {% if seller.is_approved %}
+    <form method="post" class="border-top pt-3">
+        {% csrf_token %}
+        <input type="hidden" name="quote_id" value="{{ quote.pk }}">
+        {% for field in response_form %}
+        <div class="mb-3"><label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if form_quote_id == quote.pk %}{% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}{% endif %}</div>
+        {% endfor %}
+        {% if form_quote_id == quote.pk %}{{ response_form.non_field_errors }}{% endif %}
+        <button class="seller-button" type="submit">Send reply to buyer</button>
+    </form>
+    {% endif %}
+</article>
+{% empty %}
+<div class="seller-card text-center py-5"><h2 class="h5">No buyer inquiries yet</h2><p class="seller-muted mb-0">Requests for your products will appear here.</p></div>
+{% endfor %}
+{% endblock %}

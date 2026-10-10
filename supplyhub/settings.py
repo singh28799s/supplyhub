@@ -3,6 +3,7 @@ from pathlib import Path
 import os
 import dj_database_url
 import cloudinary
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -73,6 +74,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "core.context_processors.store_settings",
             ],
         },
     },
@@ -140,9 +142,38 @@ DEFAULT_FROM_EMAIL = os.getenv(
     EMAIL_HOST_USER or "SupplyHub <no-reply@supplyhub.local>",
 )
 SUPPLYHUB_ADMIN_EMAIL = os.getenv("SUPPLYHUB_ADMIN_EMAIL", "")
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
+RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET", "")
+SUPPLYHUB_SELLER_COMMISSION_PERCENT = os.getenv(
+    "SUPPLYHUB_SELLER_COMMISSION_PERCENT",
+    "5.00",
+)
+SUPPLYHUB_PAYOUT_HOLD_DAYS = int(os.getenv("SUPPLYHUB_PAYOUT_HOLD_DAYS", "7"))
+DELHIVERY_API_TOKEN = os.getenv("DELHIVERY_API_TOKEN", "")
+DELHIVERY_API_BASE_URL = os.getenv(
+    "DELHIVERY_API_BASE_URL",
+    "https://track.delhivery.com",
+).rstrip("/")
+DELHIVERY_PICKUP_LOCATION = os.getenv("DELHIVERY_PICKUP_LOCATION", "")
 
 
 # Cloudinary configuration
+cloudinary_values = (
+    os.getenv("CLOUDINARY_CLOUD_NAME"),
+    os.getenv("CLOUDINARY_API_KEY"),
+    os.getenv("CLOUDINARY_API_SECRET"),
+)
+cloudinary_url = os.getenv("CLOUDINARY_URL", "")
+has_partial_cloudinary_config = any(cloudinary_values) and not all(cloudinary_values)
+if has_partial_cloudinary_config and not cloudinary_url:
+    raise ImproperlyConfigured(
+        "Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET together."
+    )
+has_cloudinary_config = bool(cloudinary_url) or all(cloudinary_values)
+if not DEBUG and not has_cloudinary_config:
+    raise ImproperlyConfigured("Configure Cloudinary credentials for production media storage.")
+
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
     api_key=os.getenv("CLOUDINARY_API_KEY"),
@@ -151,7 +182,11 @@ cloudinary.config(
 )
 STORAGES = {
     "default": {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        "BACKEND": (
+            "cloudinary_storage.storage.MediaCloudinaryStorage"
+            if has_cloudinary_config
+            else "django.core.files.storage.FileSystemStorage"
+        ),
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",

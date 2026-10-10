@@ -1,0 +1,41 @@
+<style>
+    :root {
+        --green: {{ store_settings.primary_color }};
+        --green-dark: {{ store_settings.primary_dark_color }};
+        --orange: {{ store_settings.accent_color }};
+        --page-bg: {{ store_settings.page_background_color }};
+        --dark: {{ store_settings.text_color }};
+        --text: {{ store_settings.text_color }};
+        --bs-primary: {{ store_settings.primary_color }};
+        --bs-success: {{ store_settings.primary_color }};
+    }
+    body { background-color: var(--page-bg); color: var(--dark); }
+    .brand, .market-brand, .account-brand, .seller-brand { color: var(--green); }
+    .btn-green, .btn-supply, .btn-success, .market-button-primary {
+        background-color: var(--green);
+        border-color: var(--green);
+        color: #fff;
+    }
+    .btn-green:hover, .btn-supply:hover, .btn-success:hover, .market-button-primary:hover {
+        background-color: var(--green-dark);
+        border-color: var(--green-dark);
+        color: #fff;
+    }
+    .btn-outline-success {
+        --bs-btn-color: var(--green);
+        --bs-btn-border-color: var(--green);
+        --bs-btn-hover-bg: var(--green);
+        --bs-btn-hover-border-color: var(--green);
+        --bs-btn-active-bg: var(--green-dark);
+    }
+    .text-success { color: var(--green) !important; }
+    .site-brand-logo { width: 100%; height: 100%; object-fit: contain; }
+    .site-brand-mark:not(.market-brand-mark):not(.brand-mark) {
+        display: inline-flex;
+        width: 1.5em;
+        height: 1.5em;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+    }
+</style>

@@ -1,12 +1,32 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.test import override_settings
 from django.urls import reverse
 
-from core.models import Category, Order, OrderItem, Product, QuoteRequest, StoreSettings, Supplier
+from core.models import (
+    Category,
+    Order,
+    OrderItem,
+    Product,
+    PromotionCampaign,
+    QuoteRequest,
+    SellerProfile,
+    StoreSettings,
+    Supplier,
+)
 
 
+@override_settings(
+    STORAGES={
+        **settings.STORAGES,
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+)
 class DashboardAccessTests(TestCase):
     def test_anonymous_user_is_redirected_to_admin_login(self):
         response = self.client.get(reverse("dashboard:index"))
@@ -70,12 +90,76 @@ class DashboardAccessTests(TestCase):
         self.assertEqual(response.context["order_count"], 1)
         self.assertEqual(response.context["customer_count"], 0)
         self.assertEqual(response.context["total_sales"], 75)
-        self.assertContains(response, str(order.reference)[:8])
+        self.assertContains(response, f"#{order.pk}")
         self.assertContains(response, "Test Wholesale Product")
         self.assertContains(response, "Test Category")
         self.assertContains(response, reverse("admin:core_order_changelist"))
         self.assertContains(response, reverse("admin:core_product_add"))
         self.assertContains(response, 'method="post"')
+
+    def test_staff_can_approve_seller_and_publish_seller_products(self):
+        staff = get_user_model().objects.create_superuser(
+            username="sellerapprover",
+            email="approver@example.com",
+            password="TestAdminPass!984",
+        )
+        seller_user = get_user_model().objects.create_user(
+            username="pendingmaker",
+            email="maker@example.com",
+            password="TestSellerPass!984",
+        )
+        seller = SellerProfile.objects.create(
+            user=seller_user,
+            company_name="Pending Maker",
+            contact_name="Maker Contact",
+            email="maker@example.com",
+        )
+        category = Category.objects.create(name="Pending Category")
+        product = Product.objects.create(
+            seller=seller,
+            category=category,
+            name="Pending Maker Product",
+            price="25.00",
+            is_active=False,
+        )
+        self.client.force_login(staff)
+
+        dashboard = self.client.get(reverse("dashboard:index"))
+        self.assertContains(dashboard, "Seller approvals")
+        self.assertContains(dashboard, seller.company_name)
+        self.assertContains(dashboard, "Seller awaiting approval")
+
+        response = self.client.post(
+            reverse("dashboard:seller_status_update", args=[seller.pk]),
+            {"action": "approve"},
+        )
+
+        self.assertRedirects(response, reverse("dashboard:index"))
+        seller.refresh_from_db()
+        product.refresh_from_db()
+        self.assertEqual(seller.status, SellerProfile.Status.APPROVED)
+        self.assertTrue(product.is_active)
+        self.assertContains(self.client.get(reverse("home")), product.name)
+
+    def test_staff_dashboard_links_to_promotion_campaign_management(self):
+        staff = get_user_model().objects.create_superuser(
+            username="campaignadmin",
+            email="campaign@example.com",
+            password="TestPassword123!",
+        )
+        PromotionCampaign.objects.create(
+            name="Autumn launch",
+            headline="Business buying made easier",
+        )
+        self.client.force_login(staff)
+
+        response = self.client.get(reverse("dashboard:index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Promotions &amp; Ads")
+        self.assertContains(response, "Business buying made easier")
+        self.assertContains(response, reverse("admin:core_promotioncampaign_add"))
+        self.assertContains(response, reverse("admin:core_promotioncampaign_changelist"))
 
     def test_staff_dashboard_logout_uses_post_and_logs_user_out(self):
         staff = get_user_model().objects.create_superuser(
@@ -127,8 +211,17 @@ class DashboardAccessTests(TestCase):
             reverse("dashboard:index"),
             {
                 "form_type": "store",
-                "store-store_name": "SupplyHub",
+                "store-store_name": "Northstar Supply",
+                "store-browser_title": "Northstar | Wholesale",
                 "store-tagline": "Wholesale store",
+                "store-hero_eyebrow": "SUPPLY FOR YOUR BUSINESS",
+                "store-hero_headline": "Source better products.",
+                "store-brand_icon": "bi-shop",
+                "store-primary_color": "#123456",
+                "store-primary_dark_color": "#102030",
+                "store-accent_color": "#AABBCC",
+                "store-page_background_color": "#F0F0F0",
+                "store-text_color": "#222222",
                 "store-support_phone": "1234567890",
                 "store-support_email": "singh28799@gmail.com",
                 "store-address": "Jaipur",
@@ -137,7 +230,46 @@ class DashboardAccessTests(TestCase):
         )
 
         self.assertRedirects(response, reverse("dashboard:index"))
-        self.assertEqual(StoreSettings.objects.get(pk=1).support_email, "singh28799@gmail.com")
+        settings = StoreSettings.objects.get(pk=1)
+        self.assertEqual(settings.support_email, "singh28799@gmail.com")
+        self.assertEqual(settings.store_name, "Northstar Supply")
+        self.assertEqual(settings.browser_title, "Northstar | Wholesale")
+        self.assertEqual(settings.primary_color, "#123456")
+
+    def test_invalid_brand_color_keeps_website_settings_open_and_shows_error(self):
+        staff = get_user_model().objects.create_superuser(
+            username="invalidbrandingadmin",
+            email="branding@example.com",
+            password="Test-Branding-123!",
+        )
+        self.client.force_login(staff)
+
+        response = self.client.post(
+            reverse("dashboard:index"),
+            {
+                "form_type": "store",
+                "store-store_name": "Northstar Supply",
+                "store-browser_title": "Northstar | Wholesale",
+                "store-tagline": "Wholesale store",
+                "store-hero_eyebrow": "SUPPLY FOR YOUR BUSINESS",
+                "store-hero_headline": "Source better products.",
+                "store-brand_icon": "bi-shop",
+                "store-primary_color": "#GGGGGG",
+                "store-primary_dark_color": "#102030",
+                "store-accent_color": "#AABBCC",
+                "store-page_background_color": "#F0F0F0",
+                "store-text_color": "#222222",
+                "store-support_phone": "",
+                "store-support_email": "",
+                "store-address": "",
+                "store-delivery_note": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["form_error_page"], "settings")
+        self.assertIn("primary_color", response.context["brand_form"].errors)
+        self.assertContains(response, "Enter a valid hex color")
 
     def test_dashboard_lists_database_quotes_suppliers_and_offers(self):
         staff = get_user_model().objects.create_superuser(

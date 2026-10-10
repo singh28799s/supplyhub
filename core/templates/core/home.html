@@ -4,993 +4,510 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>{{ store_settings.store_name }} | B2B Wholesale Supplier</title>
-
-    <!-- Bootstrap 5 -->
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
-
-    <!-- Bootstrap Icons -->
-    <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{{ store_settings.tagline|default:'Wholesale products and bulk sourcing for businesses.' }}">
+    <title>{{ store_settings.browser_title|default:store_settings.store_name }}</title>
+    {% include "core/partials/site_theme.html" %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ STATIC_PREFIX }}core/css/home.css">
+    {% include "core/partials/site_theme_styles.html" %}
 </head>
-
-
 <body>
+    <form id="csrfTokenForm" class="d-none">{% csrf_token %}</form>
 
-<form id="csrfTokenForm" class="d-none">{% csrf_token %}</form>
-
-
-<!-- =====================================================
-     HEADER
-===================================================== -->
-
-<header class="main-header">
-
-    <div class="container">
-
-        <div class="row align-items-center g-3">
-
-            <!-- LOGO -->
-
-            <div class="col-5 col-md-3">
-
-                <a href="{% url 'home' %}" class="logo">
-
-                    <i class="bi bi-leaf-fill logo-icon"></i>
-
-                    <span>
-                        {{ store_settings.store_name }}
-                        <small class="logo-subtitle">
-                            {{ store_settings.tagline|default:"Wholesale for a Better Tomorrow" }}
-                        </small>
-                    </span>
-
-                </a>
-
+    <div class="market-topline">
+        <div class="container market-topline-inner">
+            <span>{{ store_settings.tagline|default:"Wholesale sourcing for growing businesses" }}</span>
+            <div class="market-topline-links">
+                {% if store_settings.support_phone %}<a href="tel:{{ store_settings.support_phone }}"><i class="bi bi-telephone"></i> {{ store_settings.support_phone }}</a>{% endif %}
+                {% if store_settings.support_email %}<a href="mailto:{{ store_settings.support_email }}"><i class="bi bi-envelope"></i> {{ store_settings.support_email }}</a>{% endif %}
+                <a href="{% url 'quote_request' %}">Buyer support</a>
+                <a href="{% url 'seller_register' %}">Sell on {{ store_settings.store_name }}</a>
             </div>
-
-
-            <!-- SEARCH -->
-
-            <div class="col-12 col-md-6 order-3 order-md-2">
-
-                <div class="search-wrapper">
-
-                    <select class="search-category" id="searchCategory">
-                        <option value="">All Categories</option>
-                        {% for category in categories %}
-                        <option value="{{ category.slug }}">{{ category.name }}</option>
-                        {% endfor %}
-                    </select>
-
-                    <input
-                        type="text"
-                        id="searchInput"
-                        class="search-input"
-                        placeholder="Search products..."
-                    >
-
-                    <button
-                        class="search-button"
-                        onclick="searchProducts()"
-                    >
-                        <i class="bi bi-search"></i>
-                    </button>
-
-                </div>
-
-            </div>
-
-
-            <!-- ACTIONS -->
-
-            <div class="col-7 col-md-3 order-2 order-md-3">
-
-                <div class="header-actions">
-
-                    {% if user.is_authenticated %}
-                    <span class="header-action hide-mobile">
-                        <i class="bi bi-person-check"></i>
-                        {{ user.username }}
-                    </span>
-                    <form method="post" action="{% url 'logout' %}" class="auth-logout-form hide-mobile">
-                        {% csrf_token %}
-                        <button type="submit" class="header-action auth-logout-button">
-                            <i class="bi bi-box-arrow-right"></i>
-                            Logout
-                        </button>
-                    </form>
-                    {% else %}
-                    <a href="{% url 'login' %}" class="header-action hide-mobile">
-                        <i class="bi bi-person"></i>
-                        Login
-                    </a>
-                    <a href="{% url 'register' %}" class="header-action hide-mobile">
-                        <i class="bi bi-person-plus"></i>
-                        Register
-                    </a>
-                    {% endif %}
-
-
-                    <a href="{% url 'my_orders' %}" class="header-action hide-mobile">
-
-                        <i class="bi bi-box-seam"></i>
-
-                        Orders
-
-                    </a>
-                    {% if user.is_authenticated %}
-                    <a href="{% url 'my_quotes' %}" class="header-action hide-mobile"><i class="bi bi-file-earmark-text"></i>Quotes</a>
-                    {% endif %}
-
-
-                    <a href="{% url 'wishlist' %}" class="header-action">
-
-                        <i class="bi bi-heart"></i>
-
-                        Wishlist
-
-                    </a>
-
-
-                    <a href="{% url 'cart' %}" class="header-action position-relative">
-
-                        <span
-                            class="cart-badge"
-                            id="cartCount"
-                        >
-                            {{ cart_count|default:0 }}
-                        </span>
-
-                        <i class="bi bi-cart3"></i>
-
-                        Cart
-
-                    </a>
-
-                </div>
-
-            </div>
-
         </div>
-
     </div>
 
-</header>
-
-
-<!-- =====================================================
-     DESKTOP NAVIGATION
-===================================================== -->
-
-<div class="navigation">
-
-    <div class="container">
-
-        <div class="navigation-inner d-flex align-items-center">
-
-            <a href="#categories" class="category-button">
-
-                <i class="bi bi-list"></i>
-
-                All Categories
-
+    <header class="market-header">
+        <div class="container market-header-main">
+            <a href="{% url 'home' %}" class="market-brand" aria-label="{{ store_settings.store_name }} home">
+                {% include "core/partials/brand_mark.html" with brand_mark_class="market-brand-mark" %}
+                <span class="market-brand-copy">
+                    <strong>{{ store_settings.store_name }}</strong>
+                    <small>{{ store_settings.tagline|default:"B2B WHOLESALE" }}</small>
+                </span>
             </a>
 
-
-            <nav class="navbar navbar-expand-lg">
-
-                <ul class="navbar-nav ms-3">
-
-                    <li class="nav-item">
-                        <a href="{% url 'home' %}" class="nav-link">
-                            Home
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a href="#categories" class="nav-link">
-                            Categories
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a href="#products" class="nav-link">
-                            Products
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a href="#bulk" class="nav-link">
-                            Bulk Orders
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a href="{% url 'quote_request' %}" class="nav-link">
-                            Custom Manufacturing
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a href="#contact" class="nav-link">
-                            Contact
-                        </a>
-                    </li>
-
-                </ul>
-
-            </nav>
-
-
-            <button
-                class="quote-button ms-auto"
-                onclick="window.location.href='{% url 'quote_request' %}'"
-            >
-
-                <i class="bi bi-file-earmark-text"></i>
-
-                Request a Quote
-
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- =====================================================
-     HERO
-===================================================== -->
-
-<section class="hero">
-
-    <div class="container">
-
-        <div class="hero-content">
-
-            <div class="hero-tag">
-
-                <i class="bi bi-check-circle-fill"></i>
-
-                Eco-Friendly
-                •
-                Durable
-                •
-                Sustainable
-
+            <div class="market-search" role="search">
+                <label class="visually-hidden" for="searchCategory">Search category</label>
+                <select id="searchCategory" class="market-search-category">
+                    <option value="">All categories</option>
+                    {% for category in categories %}<option value="{{ category.slug }}">{{ category.name }}</option>{% endfor %}
+                </select>
+                <label class="visually-hidden" for="searchInput">Search products</label>
+                <input id="searchInput" type="search" placeholder="Search products, categories and suppliers">
+                <button class="market-search-button" type="button" onclick="searchProducts()" aria-label="Search products"><i class="bi bi-search"></i><span>Search</span></button>
             </div>
 
-
-            <h1 class="hero-title">
-
-                Premium Jute Products
-
-                <span>
-                    at Wholesale Prices
-                </span>
-
-            </h1>
-
-
-            <p class="hero-description">
-
-                Direct from manufacturer.
-                Competitive bulk pricing.
-                Custom branding and reliable delivery
-                for your business.
-
-            </p>
-
-
-            <div class="hero-buttons d-flex gap-3">
-
-                <a
-                    href="#products"
-                    class="hero-button-primary"
-                >
-
-                    Shop Now
-
-                    <i class="bi bi-arrow-right"></i>
-
+            <div class="market-header-actions">
+                {% if user.is_authenticated %}
+                <a class="market-action market-account" href="{% url 'my_orders' %}"><i class="bi bi-person-circle"></i><span><small>Welcome</small>{{ user.username }}</span></a>
+                <form method="post" action="{% url 'logout' %}" class="market-inline-form">{% csrf_token %}<button class="market-action market-logout" type="submit"><i class="bi bi-box-arrow-right"></i><span>Logout</span></button></form>
+                {% else %}
+                <a class="market-action" href="{% url 'login' %}"><i class="bi bi-person"></i><span>Sign in</span></a>
+                <a class="market-action market-register" href="{% url 'register' %}"><i class="bi bi-person-plus"></i><span>Join free</span></a>
+                {% endif %}
+                <a class="market-action" href="{% url 'wishlist' %}"><i class="bi bi-heart"></i><span>Saved</span></a>
+                <a class="market-action market-cart" href="{% url 'cart' %}">
+                    <span class="market-cart-count" id="cartCount">{{ cart_count|default:0 }}</span>
+                    <i class="bi bi-cart3"></i><span>Cart</span>
                 </a>
-
-
-                <a
-                    href="{% url 'quote_request' %}"
-                    class="hero-button-secondary"
-                >
-
-                    <i class="bi bi-file-earmark-text"></i>
-
-                    Get Bulk Quote
-
-                </a>
-
             </div>
-
         </div>
+    </header>
 
-    </div>
-
-</section>
-
-
-<!-- =====================================================
-     FEATURES
-===================================================== -->
-
-<section class="features-section">
-
-    <div class="container">
-
-        <div class="row">
-
-            <div class="col-6 col-lg-2">
-
-                <div class="feature">
-
-                    <div class="feature-icon">
-                        <i class="bi bi-tag"></i>
-                    </div>
-
-                    <div>
-
-                        <h6>Wholesale Prices</h6>
-
-                        <p>
-                            Best rates for bulk orders
-                        </p>
-
-                    </div>
-
-                </div>
-
+    <nav class="market-nav" aria-label="Main navigation">
+        <div class="container market-nav-inner">
+            <a class="market-nav-categories" href="#categories"><i class="bi bi-grid"></i> Browse categories</a>
+            <div class="market-nav-links">
+                <a href="{% url 'home' %}">Home</a>
+                <a href="#products">Products</a>
+                <a href="#new-arrivals">New arrivals</a>
+                <a href="#offers">Deals</a>
+                <a href="#bulk">Bulk sourcing</a>
             </div>
-
-
-            <div class="col-6 col-lg-2">
-
-                <div class="feature">
-
-                    <div class="feature-icon">
-                        <i class="bi bi-box-seam"></i>
-                    </div>
-
-                    <div>
-
-                        <h6>Wide Product Range</h6>
-
-                        <p>
-                            {{ products|length }} products
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="col-6 col-lg-2">
-
-                <div class="feature">
-
-                    <div class="feature-icon">
-                        <i class="bi bi-gear"></i>
-                    </div>
-
-                    <div>
-
-                        <h6>Customization</h6>
-
-                        <p>
-                            OEM & branding
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="col-6 col-lg-2">
-
-                <div class="feature">
-
-                    <div class="feature-icon">
-                        <i class="bi bi-truck"></i>
-                    </div>
-
-                    <div>
-
-                        <h6>Pan India Delivery</h6>
-
-                        <p>
-                            Fast & reliable
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="col-6 col-lg-2">
-
-                <div class="feature">
-
-                    <div class="feature-icon">
-                        <i class="bi bi-receipt"></i>
-                    </div>
-
-                    <div>
-
-                        <h6>GST Invoice</h6>
-
-                        <p>
-                            Tax compliant
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="col-6 col-lg-2">
-
-                <div class="feature">
-
-                    <div class="feature-icon">
-                        <i class="bi bi-shield-check"></i>
-                    </div>
-
-                    <div>
-
-                        <h6>Order Status</h6>
-
-                        <p>
-                            Track requests in your account
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </div>
-
+            <a class="market-nav-quote" href="{% url 'quote_request' %}"><i class="bi bi-file-earmark-text"></i> Request a quote</a>
         </div>
+    </nav>
 
-    </div>
-
-</section>
-
-
-<!-- =====================================================
-     CATEGORIES
-===================================================== -->
-
-<section
-    class="section"
-    id="categories"
->
-
-    <div class="container">
-
-        <div class="section-heading">
-
-            <h2 class="section-title">Shop by Category</h2>
-            <a href="#products" class="section-link">View Products →</a>
-        </div>
-        <div class="row g-3">
-            {% for category in categories %}
-            <div class="col-6 col-md-4 col-lg-3">
-                <button class="category-card" type="button" onclick="filterCategory('{{ category.slug }}')">
-                    <div class="category-icon">
-                        {% if category.image %}
-                        <img
-                            src="{{ category.image.url }}"
-                            alt="{{ category.name }}"
-                            onerror="this.hidden = true; this.nextElementSibling.hidden = false;"
-                        >
-                        {% endif %}
-                        <i
-                            class="bi bi-image category-image-fallback"
-                            aria-hidden="true"
-                            {% if category.image %}hidden{% endif %}
-                        ></i>
+    <main>
+        <section class="market-hero-wrap">
+            <div class="container">
+                {% if campaigns %}
+                <div id="storefrontCampaigns" class="carousel slide carousel-fade market-campaign-carousel" data-bs-ride="carousel" data-bs-interval="6500" aria-label="Store promotions">
+                    <div class="carousel-inner">
+                        {% for campaign in campaigns %}
+                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                            <article class="market-hero">
+                                <div class="market-hero-copy">
+                                    <span class="market-eyebrow"><i class="bi bi-megaphone"></i> {{ campaign.eyebrow|default:"SUPPLYHUB WHOLESALE" }}</span>
+                                    <h1>{{ campaign.headline }}</h1>
+                                    <p>{{ campaign.description|default:store_settings.tagline|default:"Discover wholesale products, clear minimum order quantities and dependable support for your business." }}</p>
+                                    <div class="market-hero-actions">
+                                        {% if campaign.button_target == "quote" %}
+                                        <a class="market-button market-button-primary" href="{% url 'quote_request' %}">{{ campaign.button_label }} <i class="bi bi-arrow-right"></i></a>
+                                        {% elif campaign.button_target == "categories" %}
+                                        <a class="market-button market-button-primary" href="#categories">{{ campaign.button_label }} <i class="bi bi-arrow-right"></i></a>
+                                        {% elif campaign.button_target == "product" and campaign.product %}
+                                        <a class="market-button market-button-primary" href="{% url 'product_detail' campaign.product.slug %}">{{ campaign.button_label }} <i class="bi bi-arrow-right"></i></a>
+                                        {% else %}
+                                        <a class="market-button market-button-primary" href="#products">{{ campaign.button_label }} <i class="bi bi-arrow-right"></i></a>
+                                        {% endif %}
+                                        <a class="market-button market-button-light" href="{% url 'quote_request' %}">Talk to our team</a>
+                                    </div>
+                                    <div class="market-hero-proof"><i class="bi bi-check-circle-fill"></i> Wholesale pricing <span>·</span> Bulk quote support <span>·</span> Clear MOQs</div>
+                                </div>
+                                <div class="market-hero-art" aria-hidden="true">
+                                    {% if campaign.image %}<img src="{{ campaign.image.url }}" alt="" onerror="this.hidden = true;">
+                                    {% elif campaign.product and campaign.product.display_image_url %}<img src="{{ campaign.product.display_image_url }}" alt="" onerror="this.hidden = true;">
+                                    {% else %}<span class="market-hero-art-icon"><i class="bi bi-boxes"></i></span>{% endif %}
+                                    <span class="market-art-caption"><i class="bi bi-truck"></i> Built for business buying</span>
+                                </div>
+                            </article>
+                        </div>
+                        {% endfor %}
                     </div>
-                    <h6>{{ category.name }}</h6>
-                    <small>{{ category.product_count }} product{{ category.product_count|pluralize }}</small>
-                </button>
-            </div>
-            {% empty %}
-            <div class="col-12"><p class="text-muted">No categories are available yet. Add categories in the Django admin.</p></div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
-
-<!-- =====================================================
-     PRODUCTS
-===================================================== -->
-
-<section
-    class="section bg-white"
-    id="products"
->
-
-    <div class="container">
-
-        <div class="section-heading">
-
-            <h2 class="section-title">Featured Products</h2>
-            <a href="#productGrid" class="section-link">View All Products →</a>
-        </div>
-
-
-        <!-- FILTER TABS -->
-        <div class="product-tabs">
-            <button class="product-tab active" type="button" onclick="showAllProducts(this)">All Products</button>
-            {% for category in product_categories %}
-            <button class="product-tab" type="button" data-category-filter="{{ category.slug }}" onclick="filterProducts('{{ category.slug }}', this)">{{ category.name }}</button>
-            {% endfor %}
-        </div>
-
-        <!-- DATABASE-BACKED PRODUCT GRID -->
-        <div class="row g-3 g-md-4" id="productGrid">
-            {% for product in products %}
-            <div class="col-6 col-md-4 col-lg-3 product-item" data-category="{{ product.category.slug }}" data-name="{{ product.name }}">
-                <div class="product-card">
-                    <div class="product-image">
-                        {% if product.badge %}<span class="product-badge">{{ product.badge }}</span>{% endif %}
-                        <button class="wishlist-button {% if product.pk|stringformat:'s' in wishlist_ids %}active{% endif %}" type="button" aria-label="Toggle {{ product.name }} in wishlist" aria-pressed="{% if product.pk|stringformat:'s' in wishlist_ids %}true{% else %}false{% endif %}" data-product-id="{{ product.pk }}" onclick="toggleWishlist(this)"><i class="bi {% if product.pk|stringformat:'s' in wishlist_ids %}bi-heart-fill{% else %}bi-heart{% endif %}"></i></button>
-                        {% if product.image %}
-                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                        {% elif product.image_url %}
-                        <img src="{{ product.image_url }}" alt="{{ product.name }}">
-                        {% else %}
-                        <span aria-hidden="true">{{ product.icon }}</span>
-                        {% endif %}
+                    {% if campaigns|length > 1 %}
+                    <div class="market-carousel-controls">
+                        <button class="market-carousel-control" type="button" data-bs-target="#storefrontCampaigns" data-bs-slide="prev" aria-label="Previous promotion"><i class="bi bi-arrow-left"></i></button>
+                        <span class="market-carousel-count">{{ campaigns|length }} campaign{{ campaigns|length|pluralize }}</span>
+                        <button class="market-carousel-control" type="button" data-bs-target="#storefrontCampaigns" data-bs-slide="next" aria-label="Next promotion"><i class="bi bi-arrow-right"></i></button>
                     </div>
-                    <div class="product-body">
-                        <div class="product-title">{{ product.name }}</div>
-                        <div class="product-price">₹{{ product.wholesale_price }} <small>/ {{ product.unit }} (wholesale)</small></div>
-                        {% if product.offer_price and product.offer_price < product.price %}<div class="product-moq"><del>₹{{ product.price }}</del> <span class="text-success">Offer price</span></div>{% endif %}
-                        <div class="product-moq">Minimum order: {{ product.minimum_order_quantity }} {{ product.unit }}{{ product.minimum_order_quantity|pluralize }}</div>
-                        {% if product.sample_price is not None %}
-                        <div class="product-moq text-success">Sample: {{ product.sample_quantity }} {{ product.unit }} for ₹{{ product.sample_price }} each</div>
-                        <form method="post" action="{% url 'buy_sample' product.pk %}">
-                            {% csrf_token %}
-                            <button class="buy-now-button" type="submit"><i class="bi bi-box-seam"></i> Order Sample · ₹{{ product.sample_price }}</button>
-                        </form>
-                        {% endif %}
-                        <button class="add-cart-button" type="button" data-product-id="{{ product.pk }}" data-product-name="{{ product.name }}" onclick="addToCart(this)">
-                            <i class="bi bi-cart-plus"></i> Add to Cart
-                        </button>
-                        <a class="btn btn-outline-success btn-sm w-100 mt-2" href="{% url 'product_detail' product.slug %}"><i class="bi bi-info-circle"></i> View Details</a>
-                        <form method="post" action="{% url 'buy_now' product.pk %}">
-                            {% csrf_token %}
-                            <button class="buy-now-button" type="submit"><i class="bi bi-bag-check"></i> Buy Now</button>
-                        </form>
-                        <a class="btn btn-outline-success btn-sm w-100 mt-2" href="{% url 'quote_request' %}?product={{ product.pk }}">Request bulk quote</a>
+                    {% endif %}
+                </div>
+                {% else %}
+                <article class="market-hero">
+                    <div class="market-hero-copy">
+                        <span class="market-eyebrow"><i class="bi bi-buildings"></i> {{ store_settings.hero_eyebrow }}</span>
+                        <h1>{{ store_settings.hero_headline }}</h1>
+                        <p>{{ store_settings.tagline|default:"Discover business-ready products, transparent minimum quantities and wholesale prices in one place." }}</p>
+                        <div class="market-hero-actions">
+                            <a class="market-button market-button-primary" href="#products">Explore products <i class="bi bi-arrow-right"></i></a>
+                            <a class="market-button market-button-light" href="{% url 'quote_request' %}">Request a bulk quote</a>
+                        </div>
+                        <div class="market-hero-proof"><i class="bi bi-check-circle-fill"></i> Wholesale pricing <span>·</span> Bulk quote support <span>·</span> Clear MOQs</div>
                     </div>
-                </div>
-            </div>
-            {% empty %}
-            <div class="col-12"><p class="text-muted">No active products yet. Add products in the Django admin to display them here.</p></div>
-            {% endfor %}
-        </div>
-
-    </div>
-
-</section>
-
-
-<!-- =====================================================
-     BULK ORDER
-===================================================== -->
-
-<section
-    class="section"
-    id="bulk"
->
-
-    <div class="container">
-
-        <div class="bulk-box">
-
-            <div class="row align-items-center">
-
-                <div class="col-md-2">
-
-                    <div class="bulk-icon">
-
-                        <i class="bi bi-file-earmark-check"></i>
-
+                    <div class="market-hero-art" aria-hidden="true">
+                        {% with hero_product=featured_products|first %}
+                            {% if hero_product.display_image_url %}<img src="{{ hero_product.display_image_url }}" alt="" onerror="this.hidden = true;">
+                            {% else %}<span class="market-hero-art-icon"><i class="bi bi-boxes"></i></span>{% endif %}
+                        {% endwith %}
+                        <span class="market-art-caption"><i class="bi bi-truck"></i> Built for business buying</span>
                     </div>
+                </article>
+                {% endif %}
 
+                <div class="market-benefits">
+                    <div><span class="market-benefit-icon"><i class="bi bi-tags"></i></span><span><strong>Wholesale pricing</strong><small>Volume-friendly prices</small></span></div>
+                    <div><span class="market-benefit-icon"><i class="bi bi-box-seam"></i></span><span><strong>{{ products|length }} products</strong><small>Browse the catalog</small></span></div>
+                    <div><span class="market-benefit-icon"><i class="bi bi-file-earmark-check"></i></span><span><strong>Bulk quote support</strong><small>Share your requirements</small></span></div>
+                    <div><span class="market-benefit-icon"><i class="bi bi-shield-check"></i></span><span><strong>Business-first service</strong><small>Order updates from our team</small></span></div>
                 </div>
-
-
-                <div class="col-md-7 mt-3 mt-md-0">
-
-                    <h2>
-                        Need Large Quantity?
-                    </h2>
-
-                    <p>
-                        Get special wholesale pricing,
-                        custom branding and bulk-order solutions
-                        for your business.
-                    </p>
-
-                </div>
-
-
-                <div class="col-md-3 mt-3 mt-md-0">
-
-                    <a class="quote-button w-100 py-3 d-block text-center" href="{% url 'quote_request' %}">
-                        Request Bulk Quote <i class="bi bi-arrow-right"></i>
-                    </a>
-
-                </div>
-
             </div>
+        </section>
 
-        </div>
-
-    </div>
-
-</section>
-
-
-<!-- =====================================================
-     FOOTER
-===================================================== -->
-
-<footer
-    class="footer"
-    id="contact"
->
-
-    <div class="container">
-
-        <div class="row g-4">
-
-            <!-- COMPANY -->
-
-            <div class="col-12 col-md-4">
-
-                <div class="footer-logo">
-
-                    <i class="bi bi-leaf-fill"></i>
-
-                    {{ store_settings.store_name }}
-
+        <section class="market-section market-categories-section" id="categories">
+            <div class="container">
+                <div class="market-section-heading">
+                    <div><span class="market-kicker">FIND WHAT YOU NEED</span><h2>Shop by category</h2><p>Explore the catalog by product type.</p></div>
+                    <a class="market-text-link" href="#products">Browse all products <i class="bi bi-arrow-right"></i></a>
                 </div>
-
-                <p class="footer-description">
-
-                    Your trusted B2B wholesale supplier for
-                    premium jute, eco-friendly and industrial
-                    products.
-
-                </p>
-
-
-            </div>
-
-
-            <!-- QUICK LINKS -->
-
-            <div class="col-6 col-md-2">
-
-                <h5>
-                    Quick Links
-                </h5>
-
-                <p>
-                    <a href="{% url 'home' %}">Home</a><br>
-                    <a href="#products">Products</a><br>
-                    <a href="{% url 'quote_request' %}">Request a Quote</a><br>
-                    <a href="#contact">Contact</a>
-                </p>
-
-            </div>
-
-
-            <!-- CATEGORIES -->
-
-            <div class="col-6 col-md-2">
-
-                <h5>
-                    Categories
-                </h5>
-
-                <p>
+                <div class="row g-3 market-category-grid">
                     {% for category in categories %}
-                    <a href="#products" onclick="filterCategory('{{ category.slug }}'); return false;">{{ category.name }}</a>{% if not forloop.last %}<br>{% endif %}
-                    {% empty %}No categories yet.{% endfor %}
-                </p>
-
+                    <div class="col-6 col-md-4 col-xl-2">
+                        <button class="market-category-card" type="button" onclick="filterCategory('{{ category.slug }}')">
+                            <span class="market-category-image">
+                                {% if category.image %}<img src="{{ category.image.url }}" alt="" onerror="this.hidden = true; this.nextElementSibling.hidden = false;">{% endif %}
+                                <i class="bi bi-box-seam market-category-fallback" {% if category.image %}hidden{% endif %}></i>
+                            </span>
+                            <strong>{{ category.name }}</strong>
+                            <small>{{ category.product_count }} product{{ category.product_count|pluralize }}</small>
+                        </button>
+                    </div>
+                    {% empty %}
+                    <div class="col-12"><p class="market-empty">Categories will appear here once added to the catalog.</p></div>
+                    {% endfor %}
+                </div>
             </div>
+        </section>
 
-
-            <!-- SUPPORT -->
-
-            <div class="col-6 col-md-2">
-
-                <h5>
-                    Customer Support
-                </h5>
-
-                <p>
-                    <a href="{% url 'my_orders' %}">My Orders</a><br>
-                    {% if user.is_authenticated %}<a href="{% url 'my_quotes' %}">My Quote Requests</a><br>{% endif %}
-                    <a href="{% url 'quote_request' %}">Contact for Support</a>
-                </p>
-
+        {% if featured_products %}
+        <section class="market-section market-shelf-section">
+            <div class="container">
+                <div class="market-section-heading">
+                    <div><span class="market-kicker">HAND-PICKED FOR BUYERS</span><h2>Featured wholesale picks</h2><p>Selected products from our business catalog.</p></div>
+                    <a class="market-text-link" href="#products">See full catalog <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="row g-3 g-lg-4">
+                    {% for product in featured_products %}
+                    <div class="col-6 col-md-4 col-xl-3 product-item" data-product-id="{{ product.pk }}" data-category="{{ product.category.slug }}" data-category-name="{{ product.category.name }}" data-name="{{ product.name|lower }}" data-description="{{ product.description }}" data-badge="{{ product.badge }}">{% include "core/partials/product_card.html" with product=product %}</div>
+                    {% endfor %}
+                </div>
             </div>
+        </section>
+        {% endif %}
 
-
-            <!-- CONTACT -->
-
-            <div class="col-6 col-md-2">
-
-                <h5>
-                    Contact Us
-                </h5>
-
-                <p>
-
-                    <i class="bi bi-telephone"></i>
-                    {{ store_settings.support_phone|default:"Contact us by quote request" }}
-
-                    <br>
-
-                    <i class="bi bi-envelope"></i>
-                    {{ store_settings.support_email|default:"" }}
-
-                    <br>
-
-                    <i class="bi bi-geo-alt"></i>
-                    {{ store_settings.address|default:"" }}
-
-                    <br>
-
-                    <i class="bi bi-clock"></i>
-                    Mon - Sat
-
-                </p>
-
+        {% if offer_products %}
+        <section class="market-section market-deals-section" id="offers">
+            <div class="container">
+                <div class="market-section-heading">
+                    <div><span class="market-kicker">CURRENT WHOLESALE DEALS</span><h2>Offers for your next order</h2><p>Products with an offer price or sample option.</p></div>
+                    <span class="market-deal-note"><i class="bi bi-lightning-charge-fill"></i> Updated from current catalog offers</span>
+                </div>
+                <div class="row g-3 g-lg-4">
+                    {% for product in offer_products %}
+                    <div class="col-6 col-md-4 col-xl-3 product-item" data-product-id="{{ product.pk }}" data-category="{{ product.category.slug }}" data-category-name="{{ product.category.name }}" data-name="{{ product.name|lower }}" data-description="{{ product.description }}" data-badge="{{ product.badge }}">{% include "core/partials/product_card.html" with product=product %}</div>
+                    {% endfor %}
+                </div>
             </div>
+        </section>
+        {% endif %}
 
+        {% if new_products %}
+        <section class="market-section market-new-section" id="new-arrivals">
+            <div class="container">
+                <div class="market-section-heading">
+                    <div><span class="market-kicker">FRESH IN THE CATALOG</span><h2>New arrivals</h2><p>Recently added products, ready for business enquiries.</p></div>
+                    <a class="market-text-link" href="#products">View all arrivals <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="market-new-list">
+                    {% for product in new_products %}
+                    <a class="market-new-item" href="{% url 'product_detail' product.slug %}">
+                        <span class="market-new-thumb">
+                            {% if product.display_image_url %}<img src="{{ product.display_image_url }}" alt="" onerror="this.hidden = true; this.nextElementSibling.hidden = false;">{% endif %}
+                            <i class="bi bi-box-seam" {% if product.display_image_url %}hidden{% endif %}></i>
+                        </span>
+                        <span class="market-new-info"><strong>{{ product.name }}</strong><small>{{ product.category.name }} · MOQ {{ product.minimum_order_quantity }} {{ product.unit }}</small></span>
+                        <strong class="market-new-price">₹{{ product.wholesale_price|floatformat:2 }} <small>/ {{ product.unit }}</small></strong>
+                        <i class="bi bi-arrow-up-right market-new-arrow"></i>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="market-section market-catalog-section" id="products">
+            <div class="container">
+                <div class="market-section-heading market-catalog-heading">
+                    <div><span class="market-kicker">SOURCE WITH CONFIDENCE</span><h2>Wholesale product catalog</h2><p>Compare wholesale prices, minimum quantities and sample options.</p></div>
+                    <span class="market-catalog-count"><i class="bi bi-grid-3x3-gap"></i> {{ products|length }} products</span>
+                </div>
+                <div class="market-catalog-tools">
+                    <div class="market-product-tabs" role="group" aria-label="Filter products by category">
+                        <button class="market-product-tab active" type="button" onclick="showAllProducts(this)">All products</button>
+                        {% for category in product_categories %}
+                        <button class="market-product-tab" type="button" data-category-filter="{{ category.slug }}" onclick="filterProducts('{{ category.slug }}', this)">{{ category.name }}</button>
+                        {% endfor %}
+                    </div>
+                    <label class="market-sort-label" for="catalogSort">Sort</label>
+                    <select class="market-sort" id="catalogSort" onchange="sortProducts(this.value)">
+                        <option value="featured">Featured</option>
+                        <option value="newest">Newest</option>
+                        <option value="name">Name A–Z</option>
+                        <option value="price">Price: low to high</option>
+                    </select>
+                </div>
+                <div class="row g-3 g-lg-4" id="productGrid">
+                    {% for product in products %}
+                    <div class="col-6 col-md-4 col-xl-3 product-item" data-product-id="{{ product.pk }}" data-category="{{ product.category.slug }}" data-category-name="{{ product.category.name }}" data-name="{{ product.name|lower }}" data-description="{{ product.description }}" data-badge="{{ product.badge }}" data-price="{{ product.wholesale_price }}" data-created="{{ product.created_at|date:'U' }}" data-featured="{% if product.is_featured %}1{% else %}0{% endif %}">
+                        {% include "core/partials/product_card.html" with product=product %}
+                    </div>
+                    {% empty %}
+                    <div class="col-12"><div class="market-empty market-empty-large"><i class="bi bi-box-seam"></i><h3>Catalog is being prepared</h3><p>Products will appear here as soon as they are added.</p></div></div>
+                    {% endfor %}
+                </div>
+                <p class="market-search-status" id="searchResultStatus" role="status" aria-live="polite" hidden></p>
+                <div class="market-no-results" id="noProductResults" hidden><i class="bi bi-search"></i><strong id="noResultsTitle">No matching products</strong><span id="noResultsMessage">Try another search or category.</span></div>
+            </div>
+        </section>
+
+        <section class="market-quote-band" id="bulk">
+            <div class="container">
+                <div class="market-quote-panel">
+                    <div class="market-quote-mark"><i class="bi bi-chat-square-text"></i></div>
+                    <div class="market-quote-copy"><span class="market-kicker">FOR LARGE OR CUSTOM ORDERS</span><h2>Buying in bulk? Let's talk.</h2><p>Tell us the product and quantity you need. Our team can follow up with a quote for your requirements.</p></div>
+                    <a class="market-button market-button-primary" href="{% url 'quote_request' %}">Request a bulk quote <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="market-footer" id="contact">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <a href="{% url 'home' %}" class="market-brand market-footer-brand">{% include "core/partials/brand_mark.html" with brand_mark_class="market-brand-mark" %}<span class="market-brand-copy"><strong>{{ store_settings.store_name }}</strong><small>{{ store_settings.tagline|default:"B2B WHOLESALE" }}</small></span></a>
+                    <p class="market-footer-description">{{ store_settings.tagline|default:"Wholesale sourcing for growing businesses." }}</p>
+                </div>
+                <div class="col-6 col-lg-2"><h3>Shop</h3><a href="#categories">Categories</a><a href="#products">Product catalog</a><a href="#offers">Current offers</a><a href="#new-arrivals">New arrivals</a></div>
+                <div class="col-6 col-lg-3"><h3>Buyer services</h3><a href="{% url 'quote_request' %}">Request a bulk quote</a><a href="{% url 'my_orders' %}">Order information</a><a href="{% url 'wishlist' %}">Saved products</a>{% if user.is_authenticated %}<a href="{% url 'my_quotes' %}">My quotations</a>{% endif %}</div>
+                <div class="col-lg-3"><h3>Contact</h3>{% if store_settings.support_phone %}<a href="tel:{{ store_settings.support_phone }}">{{ store_settings.support_phone }}</a>{% endif %}{% if store_settings.support_email %}<a href="mailto:{{ store_settings.support_email }}">{{ store_settings.support_email }}</a>{% endif %}{% if store_settings.address %}<p>{{ store_settings.address }}</p>{% endif %}</div>
+            </div>
+            <div class="market-footer-bottom"><span>© {% now "Y" %} {{ store_settings.store_name }}. All rights reserved.</span><span>Wholesale ordering · Bulk quote support</span></div>
         </div>
+    </footer>
 
-
-        <div class="footer-bottom text-center">
-
-            © 2026 SupplyHub.
-            All Rights Reserved.
-
-        </div>
-
+    <div class="market-mobile-bar" aria-label="Quick actions">
+        <a href="#categories"><i class="bi bi-grid"></i><span>Categories</span></a>
+        <a href="#products"><i class="bi bi-search"></i><span>Products</span></a>
+        <a href="{% url 'quote_request' %}"><i class="bi bi-chat-square-text"></i><span>Quote</span></a>
+        <a href="{% url 'cart' %}"><i class="bi bi-cart3"></i><span>Cart</span><b>{{ cart_count|default:0 }}</b></a>
     </div>
 
-</footer>
+    <script>
+        let cartCount = Number("{{ cart_count|default:0 }}");
+        let activeProductCategory = "";
 
-
-<!-- =====================================================
-     JAVASCRIPT
-===================================================== -->
-
-<script>
-
-    /* =========================================
-       CART
-    ========================================= */
-
-    let cartCount = Number("{{ cart_count|default:0 }}");
-    let activeProductCategory = "";
-
-    async function addToCart(button) {
-        button.disabled = true;
-        try {
-            const response = await fetch("{% url 'add_to_cart' %}", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-                    "X-CSRFToken": document.querySelector("#csrfTokenForm [name=csrfmiddlewaretoken]").value,
-                },
-                body: new URLSearchParams({ product_id: button.dataset.productId }),
-            });
-            const result = await response.json();
-            if (!response.ok || !result.ok) throw new Error("Could not add this product. Please try again.");
-            cartCount = result.cart_count;
-            document.getElementById("cartCount").innerText = cartCount;
-            showToast(result.message);
-        } catch (error) {
-            showToast(error.message);
-        } finally {
-            button.disabled = false;
-        }
-    }
-
-
-    /* =========================================
-       SEARCH
-    ========================================= */
-
-    function searchProducts() {
-        const categorySelect = document.getElementById("searchCategory");
-        activeProductCategory = categorySelect ? categorySelect.value : activeProductCategory;
-        applyProductFilters();
-    }
-
-    function applyProductFilters() {
-        const searchValue = document.getElementById("searchInput").value.toLowerCase().trim();
-        document.querySelectorAll(".product-item").forEach(product => {
-            const matchesName = product.dataset.name.toLowerCase().includes(searchValue);
-            const matchesCategory = !activeProductCategory || product.dataset.category === activeProductCategory;
-            product.style.display = matchesName && matchesCategory ? "" : "none";
-        });
-    }
-
-
-    /* Search on Enter */
-
-    document
-        .getElementById("searchInput")
-        .addEventListener(
-            "keydown",
-            function(event) {
-
-                if (event.key === "Enter") {
-
-                    searchProducts();
-
-                }
-
+        async function addToCart(button) {
+            button.disabled = true;
+            try {
+                const response = await fetch("{% url 'add_to_cart' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                        "X-CSRFToken": document.querySelector("#csrfTokenForm [name=csrfmiddlewaretoken]").value,
+                    },
+                    body: new URLSearchParams({ product_id: button.dataset.productId }),
+                });
+                const result = await response.json();
+                if (!response.ok || !result.ok) throw new Error("Could not add this product. Please try again.");
+                cartCount = result.cart_count;
+                document.querySelectorAll("#cartCount, .market-mobile-bar b").forEach(node => node.innerText = cartCount);
+                showToast(result.message);
+            } catch (error) {
+                showToast(error.message);
+            } finally {
+                button.disabled = false;
             }
-        );
-
-    document.getElementById("searchInput").addEventListener("input", searchProducts);
-    document.getElementById("searchCategory").addEventListener("change", searchProducts);
-
-
-    /* =========================================
-       PRODUCT FILTER
-    ========================================= */
-
-    function filterProducts(category, clickedButton) {
-        activeProductCategory = category;
-        const categorySelect = document.getElementById("searchCategory");
-        if (categorySelect) categorySelect.value = category;
-        document.querySelectorAll(".product-tab").forEach(button => button.classList.remove("active"));
-        clickedButton.classList.add("active");
-        applyProductFilters();
-    }
-
-    function showAllProducts(button) {
-        activeProductCategory = "";
-        const categorySelect = document.getElementById("searchCategory");
-        if (categorySelect) categorySelect.value = "";
-        document.querySelectorAll(".product-tab").forEach(item => item.classList.remove("active"));
-        button.classList.add("active");
-        applyProductFilters();
-    }
-
-
-    /* =========================================
-       CATEGORY FILTER
-    ========================================= */
-
-    function filterCategory(category) {
-        activeProductCategory = category;
-        const categorySelect = document.getElementById("searchCategory");
-        if (categorySelect) categorySelect.value = category;
-        const matchingTab = document.querySelector(`[data-category-filter="${category}"]`);
-        if (matchingTab) {
-            document.querySelectorAll(".product-tab").forEach(button => button.classList.remove("active"));
-            matchingTab.classList.add("active");
         }
-        applyProductFilters();
-        document.getElementById("products").scrollIntoView({ behavior: "smooth" });
-    }
 
+        function searchProducts(scrollToCatalog = false) {
+            const categorySelect = document.getElementById("searchCategory");
+            activeProductCategory = categorySelect ? categorySelect.value : activeProductCategory;
+            applyProductFilters();
+            if (scrollToCatalog) document.getElementById("products").scrollIntoView({ behavior: "smooth" });
+        }
 
-    /* =========================================
-       WISHLIST
-    ========================================= */
+        function applyProductFilters() {
+            const searchValue = normalizeSearchText(document.getElementById("searchInput").value);
+            const queryTokens = searchValue.split(" ").filter(Boolean).map(normalizeSearchToken);
+            const catalogItems = Array.from(document.querySelectorAll("#productGrid > .product-item"));
+            const categoryMatches = item => !activeProductCategory || item.dataset.category === activeProductCategory;
+            let selectedItems = catalogItems.filter(categoryMatches);
+            let hasExactMatches = false;
 
-    async function toggleWishlist(button) {
-        button.disabled = true;
-        try {
-            const response = await fetch("{% url 'toggle_wishlist' %}", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-                    "X-CSRFToken": document.querySelector("#csrfTokenForm [name=csrfmiddlewaretoken]").value,
-                },
-                body: new URLSearchParams({ product_id: button.dataset.productId }),
+            if (searchValue) {
+                const exactMatches = selectedItems.filter(item => {
+                    const name = normalizeSearchText(item.dataset.name);
+                    const nameTokens = name.split(" ").map(normalizeSearchToken);
+                    return name.includes(searchValue) || queryTokens.every(token => nameTokens.includes(token));
+                });
+
+                if (exactMatches.length) {
+                    selectedItems = exactMatches;
+                    hasExactMatches = true;
+                } else {
+                    selectedItems = selectedItems
+                        .map(item => ({ item, score: getProductSearchScore(item, queryTokens) }))
+                        .filter(result => result.score > 0)
+                        .sort((first, second) => second.score - first.score || first.item.dataset.name.localeCompare(second.item.dataset.name))
+                        .slice(0, 8)
+                        .map(result => result.item);
+                }
+            }
+
+            const selectedIds = new Set(selectedItems.map(item => item.dataset.productId));
+            document.querySelectorAll(".product-item").forEach(product => {
+                const matches = searchValue
+                    ? selectedIds.has(product.dataset.productId)
+                    : categoryMatches(product);
+                product.hidden = !matches;
             });
-            const result = await response.json();
-            if (!response.ok || !result.ok) throw new Error("Could not update wishlist. Please try again.");
-            button.classList.toggle("active", result.added);
-            button.setAttribute("aria-pressed", String(result.added));
-            const icon = button.querySelector("i");
-            icon.classList.toggle("bi-heart-fill", result.added);
-            icon.classList.toggle("bi-heart", !result.added);
-            showToast(result.message);
-        } catch (error) {
-            showToast(error.message);
-        } finally {
-            button.disabled = false;
+
+            const visibleCount = selectedItems.length;
+            const noResults = document.getElementById("noProductResults");
+            noResults.hidden = visibleCount !== 0;
+            const status = document.getElementById("searchResultStatus");
+            status.hidden = !searchValue || visibleCount === 0;
+            if (status.hidden === false) {
+                status.textContent = hasExactMatches
+                    ? `${visibleCount} matching product${visibleCount === 1 ? "" : "s"}`
+                    : `No exact match. Similar products for "${document.getElementById("searchInput").value.trim()}":`;
+            }
+            document.getElementById("noResultsTitle").textContent =
+                searchValue && !activeProductCategory
+                    ? "No matching or similar products"
+                    : "No matching products";
+            document.getElementById("noResultsMessage").textContent =
+                "Try a different product name, category, or keyword.";
         }
-    }
 
+        function normalizeSearchText(value) {
+            return value
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^a-z0-9]+/g, " ")
+                .trim();
+        }
 
-    /* =========================================
-       TOAST
-    ========================================= */
+        function normalizeSearchToken(token) {
+            if (token.length > 4 && token.endsWith("ies")) return `${token.slice(0, -3)}y`;
+            if (token.length > 3 && token.endsWith("s")) return token.slice(0, -1);
+            return token;
+        }
 
-    function showToast(message) {
+        function getProductSearchScore(item, queryTokens) {
+            const fields = [
+                { value: item.dataset.name, weight: 3 },
+                { value: item.dataset.categoryName, weight: 2 },
+                { value: item.dataset.description, weight: 1 },
+                { value: item.dataset.badge, weight: 1 },
+            ];
+            return queryTokens.reduce((score, token) => {
+                const matchingField = fields.find(field =>
+                    normalizeSearchText(field.value)
+                        .split(" ")
+                        .map(normalizeSearchToken)
+                        .includes(token)
+                );
+                return score + (matchingField ? matchingField.weight : 0);
+            }, 0);
+        }
 
-        const toast =
-            document.createElement("div");
+        document.getElementById("searchInput").addEventListener("keydown", event => {
+            if (event.key === "Enter") searchProducts(true);
+        });
+        document.getElementById("searchInput").addEventListener("input", () => searchProducts());
+        document.getElementById("searchCategory").addEventListener("change", () => searchProducts());
 
-        const icon = document.createElement("i");
-        icon.className = "bi bi-check-circle-fill";
-        toast.append(icon, document.createTextNode(" " + message));
+        function filterProducts(category, clickedButton) {
+            activeProductCategory = category;
+            document.getElementById("searchCategory").value = category;
+            document.querySelectorAll(".market-product-tab").forEach(button => button.classList.remove("active"));
+            clickedButton.classList.add("active");
+            applyProductFilters();
+        }
 
-        toast.style.position = "fixed";
-        toast.style.bottom = "25px";
-        toast.style.right = "25px";
-        toast.style.background = "#087443";
-        toast.style.color = "white";
-        toast.style.padding = "13px 18px";
-        toast.style.borderRadius = "7px";
-        toast.style.zIndex = "9999";
-        toast.style.boxShadow =
-            "0 8px 25px rgba(0,0,0,.2)";
-        toast.style.fontSize = "13px";
+        function showAllProducts(button) {
+            activeProductCategory = "";
+            document.getElementById("searchCategory").value = "";
+            document.querySelectorAll(".market-product-tab").forEach(item => item.classList.remove("active"));
+            button.classList.add("active");
+            applyProductFilters();
+        }
 
-        document.body.appendChild(toast);
+        function filterCategory(category) {
+            activeProductCategory = category;
+            document.getElementById("searchCategory").value = category;
+            const matchingTab = document.querySelector(`[data-category-filter="${category}"]`);
+            if (matchingTab) {
+                document.querySelectorAll(".market-product-tab").forEach(button => button.classList.remove("active"));
+                matchingTab.classList.add("active");
+            }
+            applyProductFilters();
+            document.getElementById("products").scrollIntoView({ behavior: "smooth" });
+        }
 
-        setTimeout(() => {
+        function sortProducts(sortBy) {
+            const grid = document.getElementById("productGrid");
+            const items = Array.from(grid.querySelectorAll(".product-item"));
+            const sorters = {
+                featured: (a, b) => Number(b.dataset.featured) - Number(a.dataset.featured) || a.dataset.name.localeCompare(b.dataset.name),
+                newest: (a, b) => Number(b.dataset.created) - Number(a.dataset.created),
+                name: (a, b) => a.dataset.name.localeCompare(b.dataset.name),
+                price: (a, b) => Number(a.dataset.price) - Number(b.dataset.price),
+            };
+            items.sort(sorters[sortBy] || sorters.featured).forEach(item => grid.appendChild(item));
+        }
 
-            toast.remove();
+        async function toggleWishlist(button) {
+            button.disabled = true;
+            try {
+                const response = await fetch("{% url 'toggle_wishlist' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                        "X-CSRFToken": document.querySelector("#csrfTokenForm [name=csrfmiddlewaretoken]").value,
+                    },
+                    body: new URLSearchParams({ product_id: button.dataset.productId }),
+                });
+                const result = await response.json();
+                if (!response.ok || !result.ok) throw new Error("Could not update wishlist. Please try again.");
+                button.classList.toggle("active", result.added);
+                button.setAttribute("aria-pressed", String(result.added));
+                const icon = button.querySelector("i");
+                icon.classList.toggle("bi-heart-fill", result.added);
+                icon.classList.toggle("bi-heart", !result.added);
+                showToast(result.message);
+            } catch (error) {
+                showToast(error.message);
+            } finally {
+                button.disabled = false;
+            }
+        }
 
-        }, 2200);
-
-    }
-
-</script>
-
-
-<!-- Bootstrap JS -->
-
-<script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
-</script>
-
+        function showToast(message) {
+            const toast = document.createElement("div");
+            toast.className = "market-toast";
+            const icon = document.createElement("i");
+            icon.className = "bi bi-check-circle-fill";
+            toast.append(icon, document.createTextNode(" " + message));
+            document.body.appendChild(toast);
+            window.setTimeout(() => toast.remove(), 2400);
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

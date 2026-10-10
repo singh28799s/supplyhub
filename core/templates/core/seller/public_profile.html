@@ -1,0 +1,34 @@
+{% extends "core/seller/base.html" %}
+{% block title %}{{ seller.company_name }}{% endblock %}
+{% block content %}
+<section class="seller-public-hero mb-4">
+    {% if seller.cover_image %}<img class="seller-public-cover" src="{{ seller.cover_image.url }}" alt="">{% endif %}
+    {% if seller.logo %}<img src="{{ seller.logo.url }}" alt="{{ seller.company_name }} logo">{% else %}<span class="seller-logo-fallback"><i class="bi bi-buildings"></i></span>{% endif %}
+    <div class="seller-public-hero-content">
+        <span class="seller-status"><i class="bi bi-patch-check-fill"></i> Verified seller</span>
+        <h1 class="h2 mt-2 mb-1">{{ seller.company_name }}</h1>
+        <p class="seller-muted mb-1">{{ seller.get_business_type_display }}{% if seller.city %} · {{ seller.city }}{% endif %}{% if seller.country %}, {{ seller.country }}{% endif %}{% if seller.years_in_business %} · {{ seller.years_in_business }} years in business{% endif %}</p>
+        {% if seller.description %}<p class="mb-0">{{ seller.description|linebreaksbr }}</p>{% endif %}
+        <div class="d-flex flex-wrap gap-3 mt-2">{% if seller.email %}<a href="mailto:{{ seller.email }}">Email seller</a>{% endif %}{% if seller.phone %}<a href="tel:{{ seller.phone }}">Call seller</a>{% endif %}</div>
+    </div>
+</section>
+{% if seller.customization_capabilities or seller.certifications %}
+<section class="seller-card mb-4">
+    <div class="row g-3">
+        {% if seller.customization_capabilities %}<div class="col-md-6"><h2 class="h5">Customization capability</h2><p class="mb-0">{{ seller.customization_capabilities|linebreaksbr }}</p></div>{% endif %}
+        {% if seller.certifications %}<div class="col-md-6"><h2 class="h5">Certifications</h2><p class="mb-0">{{ seller.certifications|linebreaksbr }}</p></div>{% endif %}
+    </div>
+</section>
+{% endif %}
+<div class="seller-page-heading"><div><h2>Products from {{ seller.company_name }}</h2><p>Wholesale listings managed by this seller.</p></div><a class="seller-button seller-button-outline" href="{% url 'quote_request' %}?seller={{ seller.slug }}">Send seller an inquiry</a></div>
+<div class="row g-3">
+    {% for product in products %}
+    <div class="col-6 col-md-4 col-xl-3">
+        <a class="seller-product-card d-block" href="{% url 'product_detail' product.slug %}">
+            {% if product.display_image_url %}<img src="{{ product.display_image_url }}" alt="{{ product.name }}" loading="lazy">{% else %}<span class="seller-product-placeholder"><i class="bi bi-box-seam"></i></span>{% endif %}
+            <div class="seller-product-card-body"><h3>{{ product.name }}</h3>{% if "price" in product.visible_detail_fields %}<strong>₹{{ product.wholesale_price|floatformat:2 }} / {{ product.unit }}</strong>{% endif %}{% if "moq" in product.visible_detail_fields %}<p class="seller-muted small mb-0 mt-1">MOQ {{ product.minimum_order_quantity }} {{ product.unit }}</p>{% endif %}<span class="d-block mt-3 text-success fw-semibold">View details and ask for a quote</span></div>
+        </a>
+    </div>
+    {% empty %}<div class="col-12"><div class="seller-card text-center py-5"><h3 class="h5">This seller has no published products yet</h3></div></div>{% endfor %}
+</div>
+{% endblock %}

@@ -3,20 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Order received | SupplyHub</title>
+  <title>Order received | {{ store_settings.store_name }}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>body{background:#f5f8f6;color:#17211b}.brand{color:#087443;font-weight:800;text-decoration:none;font-size:1.4rem}.card{border:1px solid #e3ebe6;border-radius:14px}.btn-green{background:#087443;color:white}.btn-green:hover{background:#045b35;color:white}.muted{color:#68756d}</style>
+  {% include "core/partials/site_theme.html" %}{% include "core/partials/site_theme_styles.html" %}
 </head>
 <body>
-<header class="bg-white border-bottom py-3"><div class="container"><a class="brand" href="{% url 'home' %}">SupplyHub</a></div></header>
+<header class="bg-white border-bottom py-3"><div class="container"><a class="brand" href="{% url 'home' %}">{% include "core/partials/brand_mark.html" %} {{ store_settings.store_name }}</a></div></header>
 <main class="container py-5" style="max-width:760px"><div class="card shadow-sm"><div class="card-body p-4 p-md-5">
   <div class="text-success display-5">✓</div><h1 class="h2 mt-3">Order request received</h1><p class="muted">The seller will confirm availability and final pricing with you.</p>
-  <div class="alert alert-success"><strong>Order reference:</strong> {{ order.reference }}<br><strong>Status:</strong> {{ order.get_status_display }}<br><strong>Payment method:</strong> {{ order.get_payment_method_display }}</div>
+  <div class="alert alert-success"><strong>Order ID:</strong> #{{ order.pk }}<br><strong>Status:</strong> {{ order.get_status_display }}<br><strong>Payment method:</strong> {{ order.get_payment_method_display }}<br><strong>Payment status:</strong> {{ order.get_payment_status_display }}</div>
   <h2 class="h5 mt-4">Items</h2>{% for item in order.items.all %}<div class="d-flex justify-content-between py-2 border-bottom"><span>{{ item.product_name }}{% if item.is_sample %} <span class="badge text-bg-info">Sample</span>{% endif %} · {{ item.quantity }} {{ item.unit }} × ₹{{ item.unit_price }}</span><strong>₹{{ item.line_total }}</strong></div>{% endfor %}
   <div class="d-flex justify-content-between py-2"><span>Shipping</span><span>{% if order.shipping_charge %}₹{{ order.shipping_charge }}{% else %}Free{% endif %}</span></div>
   <div class="d-flex justify-content-between mt-3 h5"><span>Total</span><span>₹{{ order.total_amount }}</span></div>
   {% if order.payment_method == "bank_transfer" and store_settings.bank_transfer_instructions %}<div class="alert alert-info mt-3">{{ store_settings.bank_transfer_instructions|linebreaksbr }}</div>{% endif %}
-  <p class="small muted mt-3">Online payment is not enabled. Keep the order reference for follow-up.</p><a href="{% url 'home' %}" class="btn btn-green mt-2">Back to SupplyHub</a>
+  {% if order.payment_method == "razorpay" and not order.payment_received %}<div class="alert alert-warning mt-3">Payment is still pending verification. Keep Order ID #{{ order.pk }} and contact support if you were charged.</div>{% elif order.payment_method != "razorpay" %}<p class="small muted mt-3">Keep Order ID #{{ order.pk }} for follow-up. Offline payments require manual confirmation.</p>{% endif %}
+  <a href="{% url 'home' %}" class="btn btn-green mt-2">Back to {{ store_settings.store_name }}</a>
 </div></div></main>
 </body>
 </html>

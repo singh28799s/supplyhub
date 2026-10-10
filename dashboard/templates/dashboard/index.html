@@ -72,6 +72,19 @@ SIDEBAR
 
         </button>
 
+        <button class="menu-item"
+                onclick="showPage('sellers', this)">
+
+            <i class="bi bi-person-check"></i>
+
+            Seller approvals
+
+            <span class="menu-badge">
+                {{ pending_seller_count }}
+            </span>
+
+        </button>
+
 
         <button class="menu-item"
                 onclick="showPage('categories', this)">
@@ -143,6 +156,12 @@ SIDEBAR
 
         </button>
 
+        <a class="menu-item" href="{% url 'admin:core_sellerpayout_changelist' %}">
+            <i class="bi bi-cash-coin"></i>
+            Seller payouts
+            <span class="menu-badge">{{ ready_payout_count }}</span>
+        </a>
+
 
         <div class="menu-title">
             WEBSITE
@@ -158,6 +177,10 @@ SIDEBAR
             <i class="bi bi-credit-card"></i> Payment &amp; Shipping
         </button>
 
+        <button class="menu-item" onclick="showPage('campaigns', this)">
+            <i class="bi bi-megaphone"></i> Promotions &amp; Ads
+            <span class="menu-badge">{{ active_campaign_count }}</span>
+        </button>
 
         <div class="menu-title">
             ACCOUNT
@@ -451,7 +474,7 @@ MAIN
 
                             {% for order in recent_orders %}
                             <tr>
-                                <td><a href="{% url 'admin:core_order_change' order.pk %}" title="{{ order.reference }}"><strong>#{{ order.reference|truncatechars:13 }}</strong></a></td>
+                                <td><a href="{% url 'admin:core_order_change' order.pk %}" title="Order ID {{ order.pk }}"><strong>#{{ order.pk }}</strong></a></td>
                                 <td>{{ order.customer_name }}</td>
                                 <td>₹{{ order.total_amount|floatformat:2 }}</td>
                                 <td><span class="status status-warning">{{ order.get_status_display }}</span></td>
@@ -522,6 +545,7 @@ MAIN
                             <tr>
 
                                 <th>Product</th>
+                                <th>Seller</th>
                                 <th>Category</th>
                                 <th>Wholesale</th>
                                 <th>Sample</th>
@@ -539,15 +563,16 @@ MAIN
                             {% for product in products %}
                             <tr>
                                 <td><strong>{{ product.name }}</strong></td>
+                                <td>{{ product.seller.company_name|default:"SupplyHub" }}</td>
                                 <td>{{ product.category.name }}</td>
                                 <td>₹{{ product.price|floatformat:2 }} / {{ product.unit }}</td>
                                 <td>{% if product.sample_price is not None %}₹{{ product.sample_price|floatformat:2 }} × {{ product.sample_quantity }}{% else %}Not set{% endif %}</td>
                                 <td>{{ product.minimum_order_quantity }} {{ product.unit }}</td>
-                                <td>{% if product.is_active %}<span class="status status-success">Active</span>{% else %}<span class="status status-warning">Inactive</span>{% endif %}</td>
+                                <td>{% if product.seller and not product.seller.is_approved %}<span class="status status-warning">Seller awaiting approval</span>{% elif product.is_active %}<span class="status status-success">Active</span>{% else %}<span class="status status-warning">Draft</span>{% endif %}</td>
                                 <td><a class="btn btn-sm btn-outline-primary" href="{% url 'admin:core_product_change' product.pk %}">Edit</a></td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="7" class="text-center text-muted py-4">No products yet. Add your first catalog product.</td></tr>
+                            <tr><td colspan="8" class="text-center text-muted py-4">No products yet. Add your first catalog product.</td></tr>
                             {% endfor %}
 
                         </tbody>
@@ -558,6 +583,68 @@ MAIN
 
             </div>
 
+        </section>
+
+        <!-- =================================================
+        SELLER APPROVALS
+        ================================================= -->
+
+        <section id="sellers" class="page">
+            <div class="page-header">
+                <div>
+                    <h2>Seller approvals</h2>
+                    <p>Review seller applications. Approving publishes that seller's product listings.</p>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-title">
+                    <h5>Pending and rejected sellers</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Business</th>
+                                <th>Contact</th>
+                                <th>Email</th>
+                                <th>Products</th>
+                                <th>Status</th>
+                                <th>Review</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for seller in seller_profiles %}
+                            <tr>
+                                <td><strong>{{ seller.company_name }}</strong><div class="small text-muted">{{ seller.city }}, {{ seller.country }}</div></td>
+                                <td>{{ seller.contact_name }}</td>
+                                <td>{{ seller.email }}</td>
+                                <td>{{ seller.product_count }}</td>
+                                <td>{% if seller.status == "pending" %}<span class="status status-warning">Pending</span>{% else %}<span class="status status-danger">Rejected</span>{% endif %}</td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <form method="post" action="{% url 'dashboard:seller_status_update' seller.pk %}" onsubmit="return confirm('Approve this seller and publish all their products?');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="approve">
+                                            <button class="btn btn-sm btn-success" type="submit">Approve &amp; publish products</button>
+                                        </form>
+                                        {% if seller.status == "pending" %}
+                                        <form method="post" action="{% url 'dashboard:seller_status_update' seller.pk %}" onsubmit="return confirm('Reject this seller application?');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="reject">
+                                            <button class="btn btn-sm btn-outline-danger" type="submit">Reject</button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center text-muted py-4">No seller applications need review.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </section>
 
 
@@ -669,7 +756,7 @@ MAIN
 
                             {% for order in orders %}
                             <tr>
-                                <td><a href="{% url 'admin:core_order_change' order.pk %}" title="{{ order.reference }}">#{{ order.reference|truncatechars:13 }}</a></td>
+                                <td><a href="{% url 'admin:core_order_change' order.pk %}" title="Order ID {{ order.pk }}">#{{ order.pk }}</a></td>
                                 <td>{{ order.customer_name }}</td>
                                 <td>{{ order.email }}</td>
                                 <td>{{ order.item_count }}</td>
@@ -949,6 +1036,89 @@ MAIN
 
 
         <!-- =================================================
+        PROMOTIONS & ADS
+        ================================================= -->
+
+        <section id="campaigns" class="page">
+            <div class="page-header">
+                <div>
+                    <h2>Promotions &amp; Ads</h2>
+                    <p>Schedule storefront hero banners and link them to products, categories or bulk quotes.</p>
+                </div>
+                <a class="btn btn-primary" href="{% url 'admin:core_promotioncampaign_add' %}">
+                    <i class="bi bi-plus-lg"></i> Create campaign
+                </a>
+            </div>
+
+            <div class="table-card campaign-table-card">
+                <div class="table-title">
+                    <div>
+                        <h5>Storefront campaigns</h5>
+                        <small class="text-muted">{{ active_campaign_count }} currently live · {{ campaign_count }} total</small>
+                    </div>
+                    <a class="btn btn-sm btn-outline-primary" href="{% url 'admin:core_promotioncampaign_changelist' %}">
+                        Manage all campaigns
+                    </a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Campaign</th>
+                                <th>Button goes to</th>
+                                <th>Schedule</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for campaign in campaigns %}
+                            <tr>
+                                <td>
+                                    <strong>{{ campaign.name }}</strong>
+                                    <div class="small text-muted">{{ campaign.headline }}</div>
+                                </td>
+                                <td>{{ campaign.get_button_target_display }}</td>
+                                <td>
+                                    {% if campaign.starts_at %}{{ campaign.starts_at|date:"d M Y H:i" }}{% else %}Immediately{% endif %}
+                                    <span class="text-muted">–</span>
+                                    {% if campaign.ends_at %}{{ campaign.ends_at|date:"d M Y H:i" }}{% else %}No end date{% endif %}
+                                </td>
+                                <td>
+                                    {% if campaign.pk in active_campaign_ids %}
+                                    <span class="status status-success">Live</span>
+                                    {% elif campaign.is_active %}
+                                    <span class="status status-warning">Scheduled</span>
+                                    {% else %}
+                                    <span class="status status-danger">Paused</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a class="btn btn-sm btn-outline-primary" href="{% url 'admin:core_promotioncampaign_change' campaign.pk %}">Edit</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    No campaigns yet. Create one to place a promotion on the storefront.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="campaign-help">
+                <i class="bi bi-info-circle"></i>
+                Campaign images and copy appear in the storefront hero. Active campaigns rotate automatically;
+                start/end times follow the server timezone.
+            </div>
+        </section>
+
+
+        <!-- =================================================
         WEBSITE SETTINGS
         ================================================= -->
 
@@ -956,14 +1126,26 @@ MAIN
             <div class="page-header">
                 <div>
                     <h2>Website Settings</h2>
-                    <p>These values power the public storefront header and contact details.</p>
+                    <p>Manage your public storefront identity, logo, browser icon, headline, colors and contact details.</p>
                 </div>
             </div>
             {% for message in messages %}<div class="alert alert-success">{{ message }}</div>{% endfor %}
             <div class="form-card">
-                <form method="post" action="{% url 'dashboard:index' %}">
+                <form method="post" action="{% url 'dashboard:index' %}" enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" name="form_type" value="store">
+                    {% if store_settings.logo %}
+                    <div class="mb-3">
+                        <span class="form-label d-block">Current logo</span>
+                        <img src="{{ store_settings.logo.url }}" alt="{{ store_settings.store_name }} logo" style="max-width: 220px; max-height: 90px; object-fit: contain;">
+                    </div>
+                    {% endif %}
+                    {% if store_settings.favicon %}
+                    <div class="mb-3">
+                        <span class="form-label d-block">Current browser icon</span>
+                        <img src="{{ store_settings.favicon.url }}" alt="{{ store_settings.store_name }} browser icon" style="width: 48px; height: 48px; object-fit: contain;">
+                    </div>
+                    {% endif %}
                     {% for field in brand_form %}
                     <div class="mb-3">
                         <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>{{ field }}

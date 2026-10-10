@@ -1,0 +1,47 @@
+{% extends "core/seller/base.html" %}
+{% block title %}Seller dashboard{% endblock %}
+{% block content %}
+<div class="seller-page-heading">
+    <div><h1>Welcome, {{ seller.company_name }}</h1><p>Manage your products, buyer requests and seller-specific order updates.</p></div>
+    <span class="seller-status {% if seller.status == 'pending' %}seller-status-pending{% elif seller.status == 'rejected' %}seller-status-rejected{% endif %}"><i class="bi bi-shield-check"></i> {{ seller.get_status_display }}</span>
+</div>
+{% if not seller.is_approved %}
+<div class="alert {% if seller.status == 'rejected' %}alert-danger{% else %}alert-warning{% endif %}">
+    {% if seller.status == 'pending' %}
+    Your application is waiting for admin review. You can prepare product drafts, but buyers cannot see them until the account is approved.
+    {% else %}
+    Your seller application is not approved. Update your shop information or contact the SupplyHub team{% if seller.review_notes %}: {{ seller.review_notes }}{% endif %}.
+    {% endif %}
+</div>
+{% endif %}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="seller-card"><span class="seller-stat-label">All products</span><strong class="seller-stat-number">{{ product_count }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="seller-card"><span class="seller-stat-label">Published products</span><strong class="seller-stat-number">{{ active_product_count }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="seller-card"><span class="seller-stat-label">Seller orders</span><strong class="seller-stat-number">{{ order_count }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="seller-card"><span class="seller-stat-label">Open quote inquiries</span><strong class="seller-stat-number">{{ open_quote_count }}</strong></div></div>
+</div>
+<div class="d-flex flex-wrap gap-2 mb-4">
+    <a class="seller-button" href="{% url 'seller_product_create' %}"><i class="bi bi-plus-lg"></i> Add a product</a>
+    <a class="seller-button seller-button-outline" href="{% url 'seller_profile_edit' %}">Edit shop profile</a>
+    <a class="seller-button seller-button-outline" href="{% url 'seller_orders' %}">View orders</a>
+    <a class="seller-button seller-button-outline" href="{% url 'seller_quotes' %}">Reply to inquiries</a>
+</div>
+<div class="row g-3">
+    <div class="col-lg-7">
+        <section class="seller-card">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-3"><h2 class="mb-0">Recent seller orders</h2><a href="{% url 'seller_orders' %}">All orders</a></div>
+            <div class="seller-table-wrap"><table class="table align-middle mb-0"><thead><tr><th>Order</th><th>Date</th><th>Your items</th><th>Status</th></tr></thead><tbody>
+                {% for seller_order in recent_orders %}<tr><td>#{{ seller_order.order.pk }}</td><td>{{ seller_order.created_at|date:"M j, Y" }}</td><td>{{ seller_order.items.count }}</td><td>{% if seller_order.order.status == "cancelled" %}Cancelled{% else %}{{ seller_order.get_status_display }}{% endif %}</td></tr>
+                {% empty %}<tr><td colspan="4" class="seller-muted">No orders for your products yet.</td></tr>{% endfor %}
+            </tbody></table></div>
+        </section>
+    </div>
+    <div class="col-lg-5">
+        <section class="seller-card">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-3"><h2 class="mb-0">Latest quote requests</h2><a href="{% url 'seller_quotes' %}">All requests</a></div>
+            {% for quote in recent_quotes %}<article class="border-bottom py-3"><strong>{{ quote.product_name|default:"Wholesale inquiry" }}</strong><div class="seller-muted small">{{ quote.quantity }} units · {{ quote.created_at|date:"M j, Y" }}</div><span class="small">{{ quote.get_status_display }}</span></article>
+            {% empty %}<p class="seller-muted mb-0">No quote requests for your products yet.</p>{% endfor %}
+        </section>
+    </div>
+</div>
+{% endblock %}

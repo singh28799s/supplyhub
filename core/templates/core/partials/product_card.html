@@ -1,0 +1,47 @@
+<article class="product-card">
+    <a class="product-card-image" href="{% url 'product_detail' product.slug %}" aria-label="View {{ product.name }}">
+        {% if "badge" in product.visible_detail_fields and product.badge %}
+        <span class="product-card-badge">{{ product.badge }}</span>
+        {% elif "price" in product.visible_detail_fields and "offer" in product.visible_detail_fields and product.offer_price and product.offer_price < product.price %}
+        <span class="product-card-badge product-card-badge-offer">Offer</span>
+        {% elif product.is_featured %}
+        <span class="product-card-badge product-card-badge-featured">Featured</span>
+        {% endif %}
+        {% if product.display_image_url %}
+        <img src="{{ product.display_image_url }}" alt="{{ product.name }}" loading="lazy" onerror="this.hidden = true; this.nextElementSibling.hidden = false;">
+        {% endif %}
+        <i class="bi bi-box-seam product-card-fallback" {% if product.display_image_url %}hidden{% endif %}></i>
+    </a>
+
+    <div class="product-card-content">
+        <a class="product-card-category" href="#categories" onclick="filterCategory('{{ product.category.slug }}'); return false;">{{ product.category.name }}</a>
+        <h3><a href="{% url 'product_detail' product.slug %}">{{ product.name }}</a></h3>
+        {% if "price" in product.visible_detail_fields %}
+        <div class="product-card-price">
+            <strong>₹{{ product.wholesale_price|floatformat:2 }}</strong>
+            <span>/ {{ product.unit }}</span>
+        </div>
+        {% endif %}
+        {% if "price" in product.visible_detail_fields and "offer" in product.visible_detail_fields and product.offer_price and product.offer_price < product.price %}
+        <p class="product-card-offer"><del>₹{{ product.price|floatformat:2 }}</del> <span>Wholesale offer</span></p>
+        {% endif %}
+        {% if "moq" in product.visible_detail_fields %}<p class="product-card-moq"><i class="bi bi-boxes"></i> MOQ: {{ product.minimum_order_quantity }} {{ product.unit }}{{ product.minimum_order_quantity|pluralize }}</p>{% endif %}
+        {% if "price" in product.visible_detail_fields and "sample" in product.visible_detail_fields and product.sample_price is not None %}
+        <p class="product-card-sample">Sample: {{ product.sample_quantity }} {{ product.unit }} · ₹{{ product.sample_price|floatformat:2 }}</p>
+        {% endif %}
+        <div class="product-card-actions">
+            <a class="product-card-detail" href="{% url 'product_detail' product.slug %}">View details</a>
+            <button class="product-card-save {% if product.pk|stringformat:'s' in wishlist_ids %}active{% endif %}" type="button" aria-label="Toggle {{ product.name }} in wishlist" aria-pressed="{% if product.pk|stringformat:'s' in wishlist_ids %}true{% else %}false{% endif %}" data-product-id="{{ product.pk }}" onclick="toggleWishlist(this)"><i class="bi {% if product.pk|stringformat:'s' in wishlist_ids %}bi-heart-fill{% else %}bi-heart{% endif %}"></i></button>
+        </div>
+        {% if "price" in product.visible_detail_fields %}
+        <button class="product-card-add" type="button" data-product-id="{{ product.pk }}" onclick="addToCart(this)"><i class="bi bi-cart-plus"></i> Add to cart</button>
+        {% if "sample" in product.visible_detail_fields and product.sample_price is not None %}
+        <form method="post" action="{% url 'buy_sample' product.pk %}">{% csrf_token %}<button class="product-card-secondary" type="submit">Order sample</button></form>
+        {% else %}
+        <form method="post" action="{% url 'buy_now' product.pk %}">{% csrf_token %}<button class="product-card-secondary" type="submit">Buy now</button></form>
+        {% endif %}
+        {% else %}<p class="product-card-moq">Price available by quote</p>{% endif %}
+        <a class="product-card-quote" href="{% url 'quote_request' %}?product={{ product.pk }}">Request bulk pricing</a>
+        {% if product.seller %}<a class="product-card-quote" href="{% url 'seller_public_profile' product.seller.slug %}">Visit seller store</a>{% endif %}
+    </div>
+</article>

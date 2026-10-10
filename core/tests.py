@@ -15,7 +15,7 @@ from .models import QuoteRequest, StoreSettings, Supplier
 
 class HomePageTests(TestCase):
     def setUp(self):
-        self.category = Category.objects.create(name="Jute Bags", icon="👜")
+        self.category = Category.objects.create(name="Jute Bags")
         self.product = Product.objects.create(
             category=self.category,
             name="Reusable Jute Tote",
@@ -29,6 +29,39 @@ class HomePageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.product.name)
         self.assertContains(response, self.category.name)
+        self.assertContains(response, f'data-product-id="{self.product.pk}"')
+        self.assertContains(response, 'data-category-name="Jute Bags"')
+        self.assertContains(response, "getProductSearchScore")
+
+    def test_home_page_uses_saved_store_branding(self):
+        StoreSettings.objects.create(
+            store_name="Northstar Supply",
+            browser_title="Northstar | Wholesale",
+            hero_eyebrow="SUPPLY FOR YOUR BUSINESS",
+            hero_headline="Source better products.",
+            brand_icon="bi-shop",
+            primary_color="#123456",
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, "<title>Northstar | Wholesale</title>")
+        self.assertContains(response, "Source better products.")
+        self.assertContains(response, "SUPPLY FOR YOUR BUSINESS")
+        self.assertContains(response, "Northstar Supply")
+        self.assertContains(response, "--green: #123456;")
+        self.assertContains(response, "bi-shop")
+
+    def test_products_without_uploaded_image_get_svg_fallback(self):
+        product = Product.objects.create(
+            category=self.category,
+            name="Bamboo Storage Basket",
+            price="30.00",
+            minimum_order_quantity=50,
+            is_active=True,
+        )
+
+        self.assertTrue(product.display_image_url.startswith("data:image/svg+xml;base64,"))
 
     def test_inactive_products_are_not_shown(self):
         self.product.is_active = False
@@ -53,7 +86,7 @@ class HomePageTests(TestCase):
         self.assertContains(response, self.product.name)
         self.assertContains(response, "Heavy-duty reusable bag for retail and events.")
         self.assertContains(response, "Minimum order")
-        self.assertContains(response, "Cash on delivery")
+        self.assertContains(response, "Add to Cart")
 
 
 class CustomerAuthenticationTests(TestCase):
@@ -126,6 +159,109 @@ class CustomerOrderTests(TestCase):
             {"product_id": self.product.pk},
         )
 
+    def test_customer_can_cancel_pending_order_and_reserved_stock_is_released(self):
+        customer = get_user_model().objects.create_user(
+            username="cancelbuyer",
+            email="cancelbuyer@example.com",
+            password="CancelBuyerPass!2026",
+        )
+        tracked_product = Product.objects.create(
+            category=self.category,
+            name="Reserved Jute Bags",
+            price="12.50",
+            track_inventory=True,
+            stock_quantity=3,
+        )
+        order = Order.objects.create(
+            customer=customer,
+            customer_name="Cancel Buyer",
+            email=customer.email,
+            phone="1234567890",
+            delivery_address="1 Test Street",
+            city="Jaipur",
+            postal_code="302001",
+            total_amount="25.00",
+        )
+        item = OrderItem.objects.create(
+            order=order,
+            product=tracked_product,
+            product_name=tracked_product.name,
+            unit=tracked_product.unit,
+            unit_price=tracked_product.price,
+            quantity=2,
+            stock_reserved=True,
+        )
+        self.client.force_login(customer)
+
+        orders_page = self.client.get(reverse("my_orders"))
+        self.assertContains(orders_page, "Cancel order")
+
+        response = self.client.post(
+            reverse("cancel_order", args=[order.pk]),
+        )
+
+        self.assertRedirects(response, reverse("my_orders"))
+        order.refresh_from_db()
+        item.refresh_from_db()
+        tracked_product.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+        self.assertFalse(item.stock_reserved)
+        self.assertEqual(tracked_product.stock_quantity, 5)
+        self.assertNotContains(self.client.get(reverse("my_orders")), "Cancel order")
+
+    def test_customer_cannot_cancel_another_customers_order(self):
+        owner = get_user_model().objects.create_user(
+            username="orderowner",
+            password="OrderOwnerPass!2026",
+        )
+        other_customer = get_user_model().objects.create_user(
+            username="notowner",
+            password="NotOwnerPass!2026",
+        )
+        order = Order.objects.create(
+            customer=owner,
+            customer_name="Order Owner",
+            email="owner@example.com",
+            phone="1234567890",
+            delivery_address="1 Test Street",
+            city="Jaipur",
+            postal_code="302001",
+        )
+        self.client.force_login(other_customer)
+
+        response = self.client.post(reverse("cancel_order", args=[order.pk]))
+
+        self.assertEqual(response.status_code, 404)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PENDING)
+
+    def test_paid_order_requires_support_for_cancellation_and_refund(self):
+        customer = get_user_model().objects.create_user(
+            username="paidbuyer",
+            password="PaidBuyerPass!2026",
+        )
+        order = Order.objects.create(
+            customer=customer,
+            customer_name="Paid Buyer",
+            email="paid@example.com",
+            phone="1234567890",
+            delivery_address="1 Test Street",
+            city="Jaipur",
+            postal_code="302001",
+            payment_method=Order.PaymentMethod.RAZORPAY,
+            payment_status=Order.PaymentStatus.CAPTURED,
+            payment_received=True,
+        )
+        self.client.force_login(customer)
+
+        orders_page = self.client.get(reverse("my_orders"))
+        self.assertNotContains(orders_page, "Cancel order")
+        self.assertContains(orders_page, "Paid orders need refund review.")
+
+        self.client.post(reverse("cancel_order", args=[order.pk]))
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PENDING)
+
     def test_add_to_cart_uses_product_moq(self):
         response = self.add_product_to_cart()
 
@@ -136,7 +272,9 @@ class CustomerOrderTests(TestCase):
 
     def test_sample_order_uses_sample_price(self):
         home_response = self.client.get(reverse("home"))
-        self.assertContains(home_response, "Order Sample · ₹25.00")
+        self.assertContains(home_response, "Sample: 1 piece")
+        self.assertContains(home_response, "₹25.00")
+        self.assertContains(home_response, "Order sample")
 
         response = self.client.post(reverse("buy_sample", args=[self.product.pk]))
 
@@ -350,7 +488,7 @@ class CustomerOrderTests(TestCase):
         self.assertEqual(item.product_name, self.product.name)
         self.assertEqual(item.quantity, 10)
         self.assertEqual(self.client.session["cart"], {})
-        self.assertContains(self.client.get(response.url), str(order.reference))
+        self.assertContains(self.client.get(response.url), f"Order ID:</strong> #{order.pk}")
 
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
@@ -377,6 +515,9 @@ class CustomerOrderTests(TestCase):
         self.assertEqual(len(mail.outbox), 2)
         self.assertEqual(mail.outbox[0].to, ["emailbuyer@example.com"])
         self.assertEqual(mail.outbox[1].to, ["orders@example.com"])
+        order = Order.objects.get(email="emailbuyer@example.com")
+        self.assertIn(f"Order ID: #{order.pk}", mail.outbox[0].body)
+        self.assertIn(f"Order ID: #{order.pk}", mail.outbox[1].body)
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_order_status_change_emails_customer(self):
@@ -401,6 +542,7 @@ class CustomerOrderTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["statusbuyer@example.com"])
         self.assertIn("confirmed", mail.outbox[0].body.lower())
+        self.assertIn(f"order #{order.pk}", mail.outbox[0].body.lower())
 
     def test_checkout_rejects_invalid_email_and_does_not_create_order(self):
         self.add_product_to_cart()
@@ -447,7 +589,7 @@ class CustomerOrderTests(TestCase):
         response = self.client.get(reverse("my_orders"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, str(order.reference))
+        self.assertContains(response, f"Order #{order.pk}")
 
 
 class QuoteRequestTests(TestCase):
