@@ -12,12 +12,16 @@ From the project folder:
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+python -c "from dotenv import set_key; from django.core.management.utils import get_random_secret_key; set_key('.env', 'SECRET_KEY', get_random_secret_key())"
 python manage.py migrate
 python manage.py load_demo_catalog
 python manage.py runserver
 ```
 
 Open `http://127.0.0.1:8000/` in your browser. Create an admin account with `python manage.py createsuperuser`, then manage categories and products at `http://127.0.0.1:8000/admin/`.
+
+Local settings load from the ignored `.env` file; without `DATABASE_URL`, the existing `db.sqlite3` database is used. Do not commit `.env`. The route `/seller/dashboard/` is the seller portal and `/staff-dashboard/` is the separate staff dashboard.
 
 The main staff/admin dashboard is available at `http://127.0.0.1:8000/staff-dashboard/` after signing in with a staff or superuser account. It summarizes the catalog, orders, pending quote requests, suppliers, product offers, seller approvals, and store settings. Regular customer accounts cannot access it.
 
@@ -71,16 +75,40 @@ Use Razorpay and Delhivery test credentials and test environments before enablin
 
 Images use local media-file storage during development when no Cloudinary credentials are configured. Set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` (or `CLOUDINARY_URL`) for Cloudinary-backed media; production mode requires Cloudinary configuration.
 
+### Render production deployment
+
+Use the existing Render web service and PostgreSQL database so deployment does not create a replacement database. In the web service's **Settings**, set:
+
+- **Build Command:** `pip install -r requirements.txt && python manage.py collectstatic --no-input`
+- **Start Command:** `python manage.py migrate && gunicorn supplyhub.wsgi:application --bind 0.0.0.0:$PORT`
+
+Set these in Render's **Environment** tab (never in Git):
+
+| Variable | Value |
+|---|---|
+| `DJANGO_ENV` | `production` |
+| `DEBUG` | `False` |
+| `SECRET_KEY` | A newly generated, private Django secret |
+| `DATABASE_URL` | The existing Render PostgreSQL **internal** connection string |
+| `ALLOWED_HOSTS` | `supplyhub-5bdm.onrender.com` plus any custom domains, comma-separated |
+| `CSRF_TRUSTED_ORIGINS` | `https://supplyhub-5bdm.onrender.com` plus each HTTPS custom domain, comma-separated |
+| `CLOUDINARY_CLOUD_NAME` | Existing Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Existing Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Existing Cloudinary API secret |
+
+Render also provides `RENDER_EXTERNAL_HOSTNAME`; the settings include its hostname and HTTPS origin automatically. Keep the existing database and Cloudinary credentials when updating the service. Configure any optional Razorpay, Delhivery, SMTP, commission, and payout environment variables only if those integrations are enabled.
+
+After deployment, check the Render deploy logs for successful `collectstatic`, migrations, and Gunicorn startup. Then verify `/`, `/login/`, `/register/`, `/seller/dashboard/`, and `/staff-dashboard/`. The seller URL redirects anonymous visitors to login; an authenticated account with a seller profile should receive the dashboard. The staff dashboard requires a staff/superuser account.
+
 ## GitHub upload
 
 Git is initialized in this folder. Create an empty repository on GitHub, then connect it and push:
 
 ```powershell
-git add .
-git commit -m "Initial Django project"
-git branch -M main
-git remote add origin YOUR_GITHUB_REPOSITORY_URL
-git push -u origin main
+git status
+git add README.md requirements.txt supplyhub/settings.py core/test_sellers.py .env.example
+git commit -m "Configure local and Render environments"
+git push
 ```
 
-Replace `YOUR_GITHUB_REPOSITORY_URL` with the repository URL. Do not commit secrets or production credentials.
+If this repository has no remote or upstream branch yet, configure those once using the repository URL and branch shown by your GitHub repository. Do not commit `.env`, secrets, production credentials, the local database, media uploads, or the virtual environment.

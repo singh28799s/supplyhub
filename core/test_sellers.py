@@ -73,6 +73,28 @@ class SellerMarketplaceTests(TestCase):
         self.assertTrue(self.client.session.get("_auth_user_id"))
         self.assertEqual(profile.products.count(), 0)
 
+    def test_seller_dashboard_route_redirects_anonymous_users_to_login(self):
+        self.assertEqual(reverse("seller_dashboard"), "/seller/dashboard/")
+
+        response = self.client.get(reverse("seller_dashboard"))
+
+        self.assertRedirects(
+            response,
+            f"{reverse('login')}?next={reverse('seller_dashboard')}",
+        )
+
+    def test_seller_dashboard_route_opens_for_authenticated_seller(self):
+        response = self.client.get(reverse("seller_dashboard"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response["Location"])
+
+        self.client.force_login(self.seller_user)
+        response = self.client.get(reverse("seller_dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Seller dashboard")
+
     def test_logged_in_buyer_can_apply_to_become_a_seller(self):
         buyer_user = get_user_model().objects.create_user(
             username="buyerapplicant",

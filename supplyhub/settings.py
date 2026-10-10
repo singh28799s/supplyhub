@@ -3,22 +3,63 @@ from pathlib import Path
 import os
 import dj_database_url
 import cloudinary
+from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
+from django.core.management.utils import get_random_secret_key
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env", override=False)
 
-SECRET_KEY = "django-insecure-change-this-before-deployment"
-DEBUG = True
-ALLOWED_HOSTS = [
-    "supplyhub-5bdm.onrender.com",
-    "localhost",
-    "127.0.0.1",
-]
 
-if not DEBUG:
-    ALLOWED_HOSTS.extend(
-        [host.strip() for host in os.getenv("ALLOWED_HOSTS", "").split(",") if host.strip()]
-    )
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def env_list(name):
+    return [value.strip() for value in os.getenv(name, "").split(",") if value.strip()]
+
+
+DJANGO_ENV = os.getenv(
+    "DJANGO_ENV",
+    "production" if os.getenv("RENDER") else "development",
+).strip().lower()
+if DJANGO_ENV not in {"development", "production"}:
+    raise ImproperlyConfigured("DJANGO_ENV must be either 'development' or 'production'.")
+
+DEBUG = env_bool("DEBUG", default=DJANGO_ENV == "development")
+if DJANGO_ENV == "production" and DEBUG:
+    raise ImproperlyConfigured("DEBUG must be False when DJANGO_ENV=production.")
+
+SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = get_random_secret_key()
+    else:
+        raise ImproperlyConfigured("Set SECRET_KEY in the production environment.")
+
+render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS")
+if DEBUG:
+    ALLOWED_HOSTS = list(dict.fromkeys([*ALLOWED_HOSTS, "localhost", "127.0.0.1"]))
+elif render_hostname and render_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_hostname)
+if not ALLOWED_HOSTS:
+    raise ImproperlyConfigured("Set ALLOWED_HOSTS to the production hostnames.")
+
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
+if render_hostname:
+    render_origin = f"https://{render_hostname}"
+    if render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(render_origin)
+
+database_url = os.getenv("DATABASE_URL", "").strip()
+if not DEBUG and not database_url:
+    raise ImproperlyConfigured("Set DATABASE_URL to the production PostgreSQL database.")
+if not DEBUG and not database_url.startswith(("postgres://", "postgresql://")):
+    raise ImproperlyConfigured("Production DATABASE_URL must use PostgreSQL.")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -84,20 +125,11 @@ WSGI_APPLICATION = "supplyhub.wsgi.application"
 ASGI_APPLICATION = "supplyhub.asgi.application"
 
 
-#DATABASE CODE 
-#DATABASES = {
- #   "default": {
- #       "ENGINE": "django.db.backends.sqlite3",
- #       "NAME": BASE_DIR / "db.sqlite3",
-  #  }
-#}
-
-
-
-# Use PostgreSQL on Render via DATABASE_URL; keep SQLite as the local fallback
 DATABASES = {
     "default": dj_database_url.config(
-        default="sqlite:///" + str(BASE_DIR / "db.sqlite3")
+        default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
+        conn_max_age=600,
+        ssl_require=not DEBUG,
     )
 }
 
@@ -189,6 +221,10 @@ STORAGES = {
         ),
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if not DEBUG
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        ),
     },
 }
