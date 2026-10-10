@@ -125,9 +125,10 @@ WSGI_APPLICATION = "supplyhub.wsgi.application"
 ASGI_APPLICATION = "supplyhub.asgi.application"
 
 
+database_config_url = database_url or "sqlite:///" + str(BASE_DIR / "db.sqlite3")
 DATABASES = {
-    "default": dj_database_url.config(
-        default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
+    "default": dj_database_url.parse(
+        database_config_url,
         conn_max_age=600,
         ssl_require=not DEBUG,
     )
