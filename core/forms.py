@@ -54,7 +54,7 @@ class SellerRegistrationForm(UserCreationForm):
     email = forms.EmailField(label="Business email")
     company_name = forms.CharField(max_length=180)
     contact_name = forms.CharField(max_length=150)
-    phone = forms.CharField(max_length=30, required=False)
+    phone = forms.CharField(max_length=30, required=True)
     country = forms.CharField(max_length=100, initial="India")
     city = forms.CharField(max_length=100, required=False)
     business_type = forms.ChoiceField(choices=SellerProfile.BusinessType.choices)
@@ -79,6 +79,17 @@ class SellerRegistrationForm(UserCreationForm):
         if SellerProfile.objects.filter(company_name__iexact=company_name).exists():
             raise forms.ValidationError("A seller account already uses this business name.")
         return company_name
+
+    def clean_phone(self):
+        from .seller_security import normalize_seller_phone
+
+        phone = self.cleaned_data["phone"]
+        country = self.cleaned_data.get("country", "India")
+        if not normalize_seller_phone(phone, country):
+            raise forms.ValidationError(
+                "Enter a valid phone number in international format, such as +919876543210."
+            )
+        return phone.strip()
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -142,9 +153,24 @@ class SellerProfileForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields.pop("phone")
+        else:
+            self.fields["phone"].required = True
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
         self.fields["business_type"].widget.attrs["class"] = "form-select"
+
+    def clean_phone(self):
+        from .seller_security import normalize_seller_phone
+
+        phone = self.cleaned_data["phone"]
+        country = self.cleaned_data.get("country", "India")
+        if not normalize_seller_phone(phone, country):
+            raise forms.ValidationError(
+                "Enter a valid phone number in international format, such as +919876543210."
+            )
+        return phone.strip()
 
 
 class SellerProductForm(forms.ModelForm):
@@ -573,6 +599,21 @@ class CustomerAuthenticationForm(AuthenticationForm):
         )
 
 
+class SellerOtpForm(forms.Form):
+    code = forms.RegexField(
+        regex=r"^\d{4,10}$",
+        label="SMS verification code",
+        error_messages={"invalid": "Enter the verification code sent to your phone."},
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "one-time-code",
+                "inputmode": "numeric",
+            }
+        ),
+    )
+
+
 class OrderCheckoutForm(forms.ModelForm):
     payment_method = forms.ChoiceField(
         choices=(),
@@ -656,11 +697,16 @@ class QuoteRequestForm(forms.ModelForm):
             category__is_active=True,
         ).filter(
             Q(seller__isnull=True)
-            | Q(seller__status=SellerProfile.Status.APPROVED, seller__user__is_active=True)
+            | Q(
+                seller__status=SellerProfile.Status.APPROVED,
+                seller__user__is_active=True,
+                seller__email_verified=True,
+            )
         ).select_related("category", "seller")
         self.fields["seller"].queryset = SellerProfile.objects.filter(
             status=SellerProfile.Status.APPROVED,
             user__is_active=True,
+            email_verified=True,
         )
         self.fields["product"].required = False
 

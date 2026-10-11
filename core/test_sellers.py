@@ -1,9 +1,12 @@
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.signing import TimestampSigner
 from django.test import TestCase
 from django.urls import reverse
 
+from .seller_security import EMAIL_VERIFICATION_SALT, normalize_seller_phone
 from .models import (
     Category,
     Order,
@@ -11,6 +14,7 @@ from .models import (
     ProductAttribute,
     ProductPriceTier,
     QuoteRequest,
+    SellerLoginChallenge,
     SellerOrder,
     SellerProfile,
 )
@@ -29,6 +33,8 @@ class SellerMarketplaceTests(TestCase):
             company_name="One Electronics",
             contact_name="Seller One",
             email="one@example.com",
+            phone="9876543210",
+            email_verified=True,
             status=SellerProfile.Status.APPROVED,
         )
         self.product = Product.objects.create(
@@ -55,7 +61,7 @@ class SellerMarketplaceTests(TestCase):
                 "email": "maker@example.com",
                 "company_name": "Maker Company",
                 "contact_name": "Maker Contact",
-                "phone": "9876543210",
+                "phone": "+919876543210",
                 "country": "India",
                 "city": "Pune",
                 "business_type": SellerProfile.BusinessType.MANUFACTURER,
@@ -66,12 +72,25 @@ class SellerMarketplaceTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("seller_dashboard"))
+        self.assertRedirects(response, reverse("seller_mfa"))
         profile = SellerProfile.objects.get(company_name="Maker Company")
         self.assertEqual(profile.status, SellerProfile.Status.PENDING)
         self.assertEqual(profile.user.username, "newmanufacturer")
         self.assertTrue(self.client.session.get("_auth_user_id"))
+        self.assertFalse(profile.email_verified)
+        self.assertEqual(profile.phone, "+919876543210")
         self.assertEqual(profile.products.count(), 0)
+
+    def login_as_seller(self, user, profile=None):
+        profile = profile or user.seller_profile
+        self.client.force_login(user)
+        session = self.client.session
+        session["seller_mfa_verified_user_id"] = user.pk
+        session["seller_mfa_verified_phone"] = normalize_seller_phone(
+            profile.phone,
+            profile.country,
+        )
+        session.save()
 
     def test_seller_dashboard_route_redirects_anonymous_users_to_login(self):
         self.assertEqual(reverse("seller_dashboard"), "/seller/dashboard/")
@@ -89,11 +108,140 @@ class SellerMarketplaceTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("/login/", response["Location"])
 
-        self.client.force_login(self.seller_user)
+        self.login_as_seller(self.seller_user)
         response = self.client.get(reverse("seller_dashboard"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Seller dashboard")
+
+    def test_seller_login_requires_email_and_sms_verification(self):
+        self.seller_user.set_password("SecureSellerPassword!823")
+        self.seller_user.save(update_fields=["password"])
+
+        response = self.client.post(
+            reverse("login"),
+            {
+                "username": self.seller_user.username,
+                "password": "SecureSellerPassword!823",
+            },
+        )
+
+        self.assertRedirects(response, reverse("seller_mfa"))
+        self.assertNotIn("seller_mfa_verified_user_id", self.client.session)
+        with patch("core.views.send_seller_sms_verification") as send_sms:
+            response = self.client.post(
+                reverse("seller_mfa"),
+                {"action": "send_code"},
+            )
+        self.assertEqual(response.status_code, 200)
+        send_sms.assert_called_once_with("+919876543210")
+        challenge = self.seller_user.seller_login_challenges.latest("created_at")
+
+        with patch("core.views.check_seller_sms_verification", return_value=True) as check_sms:
+            response = self.client.post(
+                reverse("seller_mfa"),
+                {"action": "verify", "code": "123456"},
+            )
+
+        check_sms.assert_called_once_with("+919876543210", "123456")
+        self.assertRedirects(response, reverse("seller_dashboard"))
+        self.assertTrue(
+            self.seller_user.seller_login_challenges.get(pk=challenge.pk).consumed
+        )
+        self.assertEqual(
+            self.client.session["seller_mfa_verified_user_id"],
+            self.seller_user.pk,
+        )
+
+    def test_seller_routes_are_blocked_until_mfa_is_verified(self):
+        self.client.force_login(self.seller_user)
+
+        response = self.client.get(reverse("seller_products"))
+
+        self.assertRedirects(response, reverse("seller_mfa"))
+
+    def test_sms_verification_send_is_rate_limited(self):
+        self.client.force_login(self.seller_user)
+        with patch("core.views.send_seller_sms_verification") as send_sms:
+            first = self.client.post(
+                reverse("seller_mfa"),
+                {"action": "send_code"},
+            )
+            second = self.client.post(
+                reverse("seller_mfa"),
+                {"action": "send_code"},
+            )
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        send_sms.assert_called_once_with("+919876543210")
+        self.assertEqual(
+            SellerLoginChallenge.objects.filter(user=self.seller_user).count(),
+            1,
+        )
+
+    def test_sms_verification_allows_only_five_code_checks(self):
+        self.client.force_login(self.seller_user)
+        challenge = SellerLoginChallenge.objects.create(
+            user=self.seller_user,
+            phone="+919876543210",
+        )
+        with patch("core.views.check_seller_sms_verification", return_value=False) as check_sms:
+            for _ in range(5):
+                self.client.post(
+                    reverse("seller_mfa"),
+                    {"action": "verify", "code": "123456"},
+                )
+            self.client.post(
+                reverse("seller_mfa"),
+                {"action": "verify", "code": "123456"},
+            )
+
+        challenge.refresh_from_db()
+        self.assertEqual(challenge.attempts, 5)
+        self.assertEqual(check_sms.call_count, 5)
+
+    def test_unverified_seller_email_cannot_request_sms_code(self):
+        self.seller.email_verified = False
+        self.seller.save(update_fields=["email_verified"])
+        self.client.force_login(self.seller_user)
+
+        with patch("core.views.send_seller_sms_verification") as send_sms:
+            response = self.client.post(
+                reverse("seller_mfa"),
+                {"action": "send_code"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        send_sms.assert_not_called()
+        self.assertFalse(SellerLoginChallenge.objects.filter(user=self.seller_user).exists())
+
+    def test_seller_email_link_requires_post_confirmation(self):
+        profile = self.seller
+        profile.email_verified = False
+        profile.save(update_fields=["email_verified"])
+        token = TimestampSigner(salt=EMAIL_VERIFICATION_SALT).sign(
+            f"{profile.pk}:{profile.email.casefold()}"
+        )
+        url = reverse("seller_email_verify", kwargs={"token": token})
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        profile.refresh_from_db()
+        self.assertFalse(profile.email_verified)
+
+        response = self.client.post(url)
+
+        self.assertRedirects(response, reverse("login"))
+        profile.refresh_from_db()
+        self.assertTrue(profile.email_verified)
+
+    def test_password_reset_route_is_available(self):
+        response = self.client.get(reverse("password_reset"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="email"')
 
     def test_logged_in_buyer_can_apply_to_become_a_seller(self):
         buyer_user = get_user_model().objects.create_user(
@@ -109,7 +257,7 @@ class SellerMarketplaceTests(TestCase):
                 "company_name": "Buyer Turns Manufacturer",
                 "contact_name": "Seller One",
                 "email": "buyer@example.com",
-                "phone": "",
+                "phone": "+919876543210",
                 "country": "India",
                 "city": "Delhi",
                 "business_type": SellerProfile.BusinessType.TRADING_COMPANY,
@@ -120,11 +268,12 @@ class SellerMarketplaceTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("seller_dashboard"))
+        self.assertRedirects(response, reverse("seller_mfa"))
         self.assertEqual(
             SellerProfile.objects.get(user=buyer_user).status,
             SellerProfile.Status.PENDING,
         )
+        self.assertFalse(SellerProfile.objects.get(user=buyer_user).email_verified)
 
     def test_unapproved_seller_product_is_not_published(self):
         pending_user = get_user_model().objects.create_user(
@@ -167,8 +316,10 @@ class SellerMarketplaceTests(TestCase):
             company_name="Waiting Company",
             contact_name="Awaiting Approval",
             email="waiting@example.com",
+            phone="9876543210",
+            email_verified=True,
         )
-        self.client.force_login(pending_user)
+        self.login_as_seller(pending_user, pending)
 
         response = self.client.post(
             reverse("seller_product_create"),
@@ -195,7 +346,7 @@ class SellerMarketplaceTests(TestCase):
         self.assertNotContains(self.client.get(reverse("home")), draft.name)
 
     def test_product_form_checkbox_groups_use_layout_safe_widget_class(self):
-        self.client.force_login(self.seller_user)
+        self.login_as_seller(self.seller_user)
 
         response = self.client.get(reverse("seller_product_create"))
 
@@ -210,7 +361,7 @@ class SellerMarketplaceTests(TestCase):
         )
 
     def test_seller_can_manage_price_tiers_attributes_and_visibility(self):
-        self.client.force_login(self.seller_user)
+        self.login_as_seller(self.seller_user)
         response = self.client.post(
             reverse("seller_product_create"),
             {
@@ -247,7 +398,7 @@ class SellerMarketplaceTests(TestCase):
             name="Factory location",
             value="Internal only",
         )
-        self.client.force_login(self.seller_user)
+        self.login_as_seller(self.seller_user)
         response = self.client.post(
             reverse("seller_product_edit", args=[self.product.pk]),
             {
@@ -297,6 +448,7 @@ class SellerMarketplaceTests(TestCase):
             company_name="Other Electronics",
             contact_name="Seller Two",
             email="two@example.com",
+            email_verified=True,
             status=SellerProfile.Status.APPROVED,
         )
         other_product = Product.objects.create(
@@ -316,7 +468,7 @@ class SellerMarketplaceTests(TestCase):
         )
         seller_order = SellerOrder.objects.create(order=order, seller=other_seller)
 
-        self.client.force_login(self.seller_user)
+        self.login_as_seller(self.seller_user)
         product_response = self.client.get(
             reverse("seller_product_edit", args=[other_product.pk])
         )
@@ -344,6 +496,7 @@ class SellerMarketplaceTests(TestCase):
             company_name="Other Wholesale Co",
             contact_name="Seller Two",
             email="two@example.com",
+            email_verified=True,
             status=SellerProfile.Status.APPROVED,
         )
         other_product = Product.objects.create(
@@ -393,7 +546,7 @@ class SellerMarketplaceTests(TestCase):
             [other_product.pk],
         )
 
-        self.client.force_login(self.seller_user)
+        self.login_as_seller(self.seller_user)
         update_response = self.client.post(
             reverse("seller_order_update", args=[seller_order.pk]),
             {"status": SellerOrder.Status.CONFIRMED, "seller_notes": "Order confirmed"},
@@ -416,7 +569,7 @@ class SellerMarketplaceTests(TestCase):
             email="buyer@example.com",
             phone="9876543210",
         )
-        self.client.force_login(self.seller_user)
+        self.login_as_seller(self.seller_user)
 
         response = self.client.post(
             reverse("seller_quotes"),
@@ -459,12 +612,12 @@ class SellerMarketplaceTests(TestCase):
         quote = QuoteRequest.objects.get(email="buyer@example.com")
         self.assertEqual(quote.seller, self.seller)
         self.assertIsNone(quote.product)
-        self.client.force_login(self.seller_user)
+        self.login_as_seller(self.seller_user)
         seller_quotes = self.client.get(reverse("seller_quotes"))
         self.assertContains(seller_quotes, "Please share your wholesale catalog.")
 
     def test_seller_cannot_submit_overlapping_quantity_price_tiers(self):
-        self.client.force_login(self.seller_user)
+        self.login_as_seller(self.seller_user)
         response = self.client.post(
             reverse("seller_product_create"),
             {

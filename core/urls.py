@@ -1,5 +1,5 @@
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import path, reverse_lazy
 
 from . import views
 from .forms import CustomerAuthenticationForm
@@ -25,6 +25,12 @@ urlpatterns = [
     path("quotes/my/", views.my_quotes, name="my_quotes"),
     path("sellers/register/", views.seller_register, name="seller_register"),
     path("sellers/<slug:slug>/", views.seller_public_profile, name="seller_public_profile"),
+    path("seller/security/verify/", views.seller_mfa, name="seller_mfa"),
+    path(
+        "seller/security/email/verify/<str:token>/",
+        views.seller_email_verify,
+        name="seller_email_verify",
+    ),
     path("seller/dashboard/", views.seller_dashboard, name="seller_dashboard"),
     path("seller/profile/", views.seller_profile_edit, name="seller_profile_edit"),
     path("seller/products/", views.seller_product_list, name="seller_products"),
@@ -54,12 +60,44 @@ urlpatterns = [
     path("register/", views.register, name="register"),
     path(
         "login/",
-        auth_views.LoginView.as_view(
+        views.SupplyHubLoginView.as_view(
             template_name="core/login.html",
             authentication_form=CustomerAuthenticationForm,
             redirect_authenticated_user=True,
         ),
         name="login",
+    ),
+    path(
+        "password-reset/",
+        auth_views.PasswordResetView.as_view(
+            template_name="core/password_reset_form.html",
+            email_template_name="core/password_reset_email.html",
+            subject_template_name="core/password_reset_subject.txt",
+            success_url=reverse_lazy("password_reset_done"),
+        ),
+        name="password_reset",
+    ),
+    path(
+        "password-reset/done/",
+        auth_views.PasswordResetDoneView.as_view(
+            template_name="core/password_reset_done.html"
+        ),
+        name="password_reset_done",
+    ),
+    path(
+        "password-reset/confirm/<uidb64>/<token>/",
+        auth_views.PasswordResetConfirmView.as_view(
+            template_name="core/password_reset_confirm.html",
+            success_url=reverse_lazy("password_reset_complete"),
+        ),
+        name="password_reset_confirm",
+    ),
+    path(
+        "password-reset/complete/",
+        auth_views.PasswordResetCompleteView.as_view(
+            template_name="core/password_reset_complete.html"
+        ),
+        name="password_reset_complete",
     ),
     path("logout/", auth_views.LogoutView.as_view(next_page="home"), name="logout"),
 ]

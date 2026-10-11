@@ -96,14 +96,32 @@ class SellerProfileAdmin(admin.ModelAdmin):
         "business_type",
         "country",
         "status",
+        "email_verified",
         "created_at",
     )
-    list_filter = ("status", "business_type", "country")
+    list_filter = ("status", "email_verified", "business_type", "country")
     list_editable = ("status",)
     search_fields = ("company_name", "contact_name", "email", "user__username")
-    readonly_fields = ("user", "slug", "created_at", "updated_at")
+    readonly_fields = (
+        "user",
+        "slug",
+        "email_verified",
+        "created_at",
+        "updated_at",
+    )
     fieldsets = (
-        ("Account review", {"fields": ("user", "status", "review_notes", "razorpay_linked_account_id")}),
+        (
+            "Account review",
+            {
+                "fields": (
+                    "user",
+                    "status",
+                    "email_verified",
+                    "review_notes",
+                    "razorpay_linked_account_id",
+                )
+            },
+        ),
         (
             "Public seller profile",
             {

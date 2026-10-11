@@ -19,7 +19,7 @@
   <main class="auth-card">
     <a class="brand" href="{% url 'home' %}">{% include "core/partials/brand_mark.html" %} {{ store_settings.store_name }}</a>
     <h1 class="h3 mt-4">Welcome back</h1>
-    <p class="text-secondary">Log in to your customer account.</p>
+    <p class="text-secondary">Log in to your SupplyHub account. Sellers will verify their sign-in by SMS.</p>
     {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
     <form method="post">
       {% csrf_token %}
@@ -33,6 +33,7 @@
       {% endfor %}
       <button class="btn btn-supply w-100 py-2" type="submit">Log in</button>
     </form>
+    <p class="mt-3 mb-0 text-center"><a href="{% url 'password_reset' %}">Forgot password?</a></p>
     <p class="mt-4 mb-0 text-center">New to {{ store_settings.store_name }}? <a href="{% url 'register' %}">Create an account</a></p>
   </main>
 </body>

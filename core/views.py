@@ -1,12 +1,15 @@
 import json
+import smtplib
 from decimal import Decimal
 from datetime import timedelta
 from functools import wraps
 
-from django.contrib.auth import login
+from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
 from django.contrib import messages
 from django.conf import settings
+from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
 from django.db import transaction
 from django.db.models import Count, F, Q
 from django.http import HttpResponse, JsonResponse
@@ -22,6 +25,7 @@ from .forms import (
     OrderCheckoutForm,
     QuoteRequestForm,
     SellerOrderStatusForm,
+    SellerOtpForm,
     SellerProfileForm,
     SellerProductForm,
     SellerQuoteResponseForm,
@@ -38,6 +42,7 @@ from .models import (
     QuoteRequest,
     SellerOrder,
     SellerPayout,
+    SellerLoginChallenge,
     SellerProfile,
     StoreSettings,
 )
@@ -59,6 +64,14 @@ from .payments import (
     verify_webhook_signature,
 )
 from .shipping import DelhiveryError, create_shipment, delhivery_is_configured, fetch_tracking
+from .seller_security import (
+    EMAIL_VERIFICATION_SALT,
+    SellerSecurityError,
+    check_seller_sms_verification,
+    normalize_seller_phone,
+    send_seller_email_verification,
+    send_seller_sms_verification,
+)
 
 
 def public_product_filter():
@@ -67,6 +80,7 @@ def public_product_filter():
         | Q(
             seller__status=SellerProfile.Status.APPROVED,
             seller__user__is_active=True,
+            seller__email_verified=True,
         )
     )
 
@@ -80,16 +94,218 @@ def public_products():
     )
 
 
+class SupplyHubLoginView(LoginView):
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        profile = SellerProfile.objects.filter(user=self.request.user).first()
+        if profile:
+            self.request.session.pop("seller_mfa_verified_user_id", None)
+            self.request.session.pop("seller_mfa_verified_phone", None)
+            self.request.session["seller_mfa_pending_user_id"] = self.request.user.pk
+            self.request.session["seller_mfa_next_url"] = (
+                self.get_redirect_url() or reverse("seller_dashboard")
+            )
+            return redirect("seller_mfa")
+        return response
+
+
+def _seller_mfa_is_verified(request, profile):
+    current_phone = normalize_seller_phone(profile.phone, profile.country)
+    return bool(
+        profile.email_verified
+        and current_phone
+        and request.session.get("seller_mfa_verified_user_id") == request.user.pk
+        and request.session.get("seller_mfa_verified_phone") == current_phone
+    )
+
+
 def seller_account_required(view):
     @wraps(view)
     @login_required(login_url="login")
     def wrapped(request, *args, **kwargs):
-        if not SellerProfile.objects.filter(user=request.user).exists():
+        profile = SellerProfile.objects.filter(user=request.user).first()
+        if profile is None:
             messages.error(request, "Apply for a seller account to open the seller portal.")
             return redirect("seller_register")
+        if not _seller_mfa_is_verified(request, profile):
+            request.session["seller_mfa_pending_user_id"] = request.user.pk
+            request.session.setdefault(
+                "seller_mfa_next_url",
+                request.get_full_path(),
+            )
+            return redirect("seller_mfa")
         return view(request, *args, **kwargs)
 
     return wrapped
+
+
+@login_required(login_url="login")
+def seller_mfa(request):
+    profile = SellerProfile.objects.filter(user=request.user).first()
+    if profile is None:
+        messages.error(request, "A seller account is required for seller verification.")
+        return redirect("seller_register")
+    if _seller_mfa_is_verified(request, profile):
+        return redirect("seller_dashboard")
+
+    request.session["seller_mfa_pending_user_id"] = request.user.pk
+    action = request.POST.get("action") if request.method == "POST" else ""
+    code_form = SellerOtpForm(request.POST if action == "verify" else None)
+    phone = normalize_seller_phone(profile.phone, profile.country)
+    phone_error = "" if phone else (
+        "A valid seller phone number is required. Contact site staff to update it."
+    )
+
+    if action == "email_resend":
+        try:
+            send_seller_email_verification(request, profile)
+        except SellerSecurityError as exc:
+            messages.error(request, str(exc))
+        except (smtplib.SMTPException, OSError):
+            messages.error(
+                request,
+                "The verification email could not be sent. Please try again later.",
+            )
+        else:
+            messages.success(request, "A new email verification link has been sent.")
+    elif action == "send_code":
+        if not profile.email_verified:
+            messages.error(request, "Verify your seller email before requesting an SMS code.")
+        elif not phone:
+            messages.error(request, phone_error)
+        else:
+            now = timezone.now()
+            with transaction.atomic():
+                get_user_model().objects.select_for_update().get(pk=request.user.pk)
+                SellerLoginChallenge.objects.filter(
+                    user=request.user,
+                    created_at__lt=now - timedelta(days=1),
+                ).delete()
+                recent = SellerLoginChallenge.objects.filter(
+                    user=request.user,
+                    created_at__gte=now - timedelta(hours=1),
+                )
+                if recent.count() >= 5:
+                    send_error = "Too many SMS codes were requested. Try again in an hour."
+                elif recent.filter(
+                    created_at__gte=now - timedelta(seconds=60)
+                ).exists():
+                    send_error = "Please wait one minute before requesting another SMS code."
+                else:
+                    challenge = SellerLoginChallenge.objects.create(
+                        user=request.user,
+                        phone=phone,
+                    )
+                    send_error = ""
+            if send_error:
+                messages.error(request, send_error)
+            else:
+                try:
+                    send_seller_sms_verification(phone)
+                except SellerSecurityError as exc:
+                    messages.error(request, str(exc))
+                else:
+                    messages.success(
+                        request,
+                        f"An SMS verification code was sent to the number ending in {phone[-4:]}.",
+                    )
+    elif action == "verify":
+        latest_challenge = SellerLoginChallenge.objects.filter(
+            user=request.user,
+        ).first()
+        if not code_form.is_valid():
+            messages.error(request, "Enter the SMS verification code.")
+        elif (
+            latest_challenge is None
+            or latest_challenge.consumed
+            or latest_challenge.phone != phone
+            or latest_challenge.created_at < timezone.now() - timedelta(minutes=10)
+        ):
+            messages.error(request, "Your SMS code expired. Request a new one.")
+        elif latest_challenge.attempts >= 5:
+            messages.error(request, "Too many code attempts. Request a new SMS code.")
+        else:
+            with transaction.atomic():
+                challenge = SellerLoginChallenge.objects.select_for_update().get(
+                    pk=latest_challenge.pk
+                )
+                if challenge.consumed or challenge.attempts >= 5:
+                    is_current = False
+                else:
+                    challenge.attempts += 1
+                    challenge.save(update_fields=["attempts"])
+                    is_current = True
+            if not is_current:
+                messages.error(request, "Request a new SMS verification code.")
+            else:
+                try:
+                    is_approved = check_seller_sms_verification(
+                        phone,
+                        code_form.cleaned_data["code"],
+                    )
+                except SellerSecurityError as exc:
+                    messages.error(request, str(exc))
+                else:
+                    if not is_approved:
+                        messages.error(request, "That SMS code is not valid.")
+                    else:
+                        consumed = SellerLoginChallenge.objects.filter(
+                            pk=latest_challenge.pk,
+                            consumed=False,
+                        ).update(consumed=True)
+                        if consumed:
+                            request.session["seller_mfa_verified_user_id"] = request.user.pk
+                            request.session["seller_mfa_verified_phone"] = phone
+                            request.session.pop("seller_mfa_pending_user_id", None)
+                            next_url = request.session.pop(
+                                "seller_mfa_next_url",
+                                reverse("seller_dashboard"),
+                            )
+                            messages.success(request, "Seller sign-in verified.")
+                            return redirect(next_url)
+                        messages.error(request, "That SMS code has already been used.")
+
+    return render(
+        request,
+        "core/seller/security.html",
+        {
+            "seller": profile,
+            "email_verified": profile.email_verified,
+            "phone_error": phone_error,
+            "code_form": code_form,
+        },
+    )
+
+
+def seller_email_verify(request, token):
+    if request.method != "POST":
+        return render(
+            request,
+            "core/seller/confirm_email.html",
+            {"token": token},
+        )
+    try:
+        payload = TimestampSigner(salt=EMAIL_VERIFICATION_SALT).unsign(
+            token,
+            max_age=24 * 60 * 60,
+        )
+        seller_id_text, verified_email = payload.split(":", 1)
+        seller_id = int(seller_id_text)
+    except (BadSignature, SignatureExpired, ValueError):
+        messages.error(request, "This seller email verification link is invalid or expired.")
+        return redirect("login")
+
+    profile = get_object_or_404(SellerProfile, pk=seller_id)
+    if profile.email.casefold() != verified_email:
+        messages.error(request, "This verification link no longer matches the seller email.")
+        return redirect("login")
+    if not profile.email_verified:
+        profile.email_verified = True
+        profile.save(update_fields=["email_verified", "updated_at"])
+    messages.success(request, "Seller email verified. Sign in and complete SMS verification.")
+    if request.user.is_authenticated and request.user.pk == profile.user_id:
+        return redirect("seller_mfa")
+    return redirect("login")
 
 
 def _cart_rows(request):
@@ -146,6 +362,7 @@ def home(request):
                 | Q(
                     products__seller__status=SellerProfile.Status.APPROVED,
                     products__seller__user__is_active=True,
+                    products__seller__email_verified=True,
                 )
             ),
         )
@@ -208,6 +425,7 @@ def quote_request(request):
             slug=seller_slug,
             status=SellerProfile.Status.APPROVED,
             user__is_active=True,
+            email_verified=True,
         ).pk
     form = QuoteRequestForm(request.POST or None, initial=initial)
     if request.method == "POST" and form.is_valid():
@@ -939,11 +1157,24 @@ def seller_register(request):
             profile.email = profile.email or request.user.email
             profile.status = SellerProfile.Status.PENDING
             profile.save()
+            request.session.pop("seller_mfa_verified_user_id", None)
+            request.session.pop("seller_mfa_verified_phone", None)
+            request.session["seller_mfa_pending_user_id"] = request.user.pk
+            request.session["seller_mfa_next_url"] = reverse("seller_dashboard")
+            try:
+                send_seller_email_verification(request, profile)
+            except SellerSecurityError as exc:
+                messages.error(request, str(exc))
+            except (smtplib.SMTPException, OSError):
+                messages.error(
+                    request,
+                    "Your application was saved, but the email verification message could not be sent.",
+                )
             messages.success(
                 request,
-                "Your seller application was submitted. Products become public after admin approval.",
+                "Your seller application was submitted. Verify your email and phone to open the seller portal.",
             )
-            return redirect("seller_dashboard")
+            return redirect("seller_mfa")
         template = "core/seller/register.html"
     else:
         form = SellerRegistrationForm(request.POST or None, request.FILES or None)
@@ -951,11 +1182,23 @@ def seller_register(request):
             with transaction.atomic():
                 user = form.save()
             login(request, user)
+            profile = user.seller_profile
+            request.session["seller_mfa_pending_user_id"] = user.pk
+            request.session["seller_mfa_next_url"] = reverse("seller_dashboard")
+            try:
+                send_seller_email_verification(request, profile)
+            except SellerSecurityError as exc:
+                messages.error(request, str(exc))
+            except (smtplib.SMTPException, OSError):
+                messages.error(
+                    request,
+                    "Your application was saved, but the email verification message could not be sent.",
+                )
             messages.success(
                 request,
-                "Your seller application was submitted. Products become public after admin approval.",
+                "Your seller application was submitted. Verify your email and phone to open the seller portal.",
             )
-            return redirect("seller_dashboard")
+            return redirect("seller_mfa")
         template = "core/seller/register.html"
 
     return render(
@@ -1007,9 +1250,29 @@ def seller_profile_edit(request):
         instance=profile,
     )
     if request.method == "POST" and form.is_valid():
-        form.save()
+        old_email = profile.email.casefold()
+        profile = form.save(commit=False)
+        email_changed = profile.email.casefold() != old_email
+        if email_changed:
+            profile.email_verified = False
+        profile.save()
+        if email_changed:
+            try:
+                send_seller_email_verification(request, profile)
+            except SellerSecurityError as exc:
+                messages.error(request, str(exc))
+            except (smtplib.SMTPException, OSError):
+                messages.error(
+                    request,
+                    "The email changed, but its verification message could not be sent.",
+                )
+            else:
+                messages.info(
+                    request,
+                    "Verify the new seller email before opening your seller dashboard.",
+                )
         messages.success(request, "Your seller profile has been updated.")
-        return redirect("seller_dashboard")
+        return redirect("seller_mfa" if email_changed else "seller_dashboard")
     return render(
         request,
         "core/seller/profile_form.html",
@@ -1023,6 +1286,7 @@ def seller_public_profile(request, slug):
         slug=slug,
         status=SellerProfile.Status.APPROVED,
         user__is_active=True,
+        email_verified=True,
     )
     products = public_products().filter(seller=seller)
     categories = Category.objects.filter(is_active=True)

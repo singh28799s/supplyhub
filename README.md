@@ -53,9 +53,13 @@ Staff can open **Promotions & Ads** in the staff dashboard or **Promotion campai
 
 After pulling changes that add a migration, apply it with `python manage.py migrate`.
 
-### Seller accounts and listings
+### Seller accounts, sign-in security, and listings
 
-Sellers apply at `/sellers/register/` or from **Sell on SupplyHub**. A seller account starts as **Awaiting review**; staff must approve the profile under **Seller approvals** in the staff dashboard before the seller's products or public shop appear. Sign in with that seller account and open `/seller/dashboard/` to manage the shop profile, product listings, buyer quote inquiries, and seller-specific order updates.
+Sellers apply at `/sellers/register/` or from **Sell on SupplyHub**. Seller access requires a verified seller email and an SMS verification code on every login. New seller phone numbers must be valid international numbers (for example `+919876543210`); existing sellers with an invalid or missing number must ask staff to correct the saved phone number. Configure Twilio Verify and production SMTP before enabling seller logins. SMS delivery may incur Twilio charges.
+
+Password recovery is available from the login page at `/password-reset/`. The reset link is sent by email; configure SMTP in Render so recovery links are delivered privately rather than written to server logs. Email verification links expire after 24 hours. SMS requests are rate-limited to five per hour, with a one-minute resend cooldown, and each code allows at most five checks.
+
+A seller account starts as **Awaiting review**; staff must approve the profile under **Seller approvals** in the staff dashboard before the seller's products or public shop appear. Sign in with that seller account and open `/seller/dashboard/` to manage the shop profile, product listings, buyer quote inquiries, and seller-specific order updates. Seller edit/order/quote actions are scoped to the signed-in seller's own records. Sellers cannot change the MFA phone from the profile form; staff must verify and update a replacement number.
 
 Seller profiles, product specifications, extra product photos, quantity-price tiers, customizations, seller orders, and seller quote replies each have their own Django models/tables in the project's configured database. Local development uses SQLite; deployment can continue using the existing `DATABASE_URL` configuration. No separate database server is required.
 
@@ -95,6 +99,12 @@ Set these in Render's **Environment** tab (never in Git):
 | `CLOUDINARY_CLOUD_NAME` | Existing Cloudinary cloud name |
 | `CLOUDINARY_API_KEY` | Existing Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Existing Cloudinary API secret |
+| `TWILIO_ACCOUNT_SID` | Twilio account SID (private) |
+| `TWILIO_AUTH_TOKEN` | Twilio auth token (private) |
+| `TWILIO_VERIFY_SERVICE_SID` | Twilio Verify service SID |
+| `EMAIL_HOST` / `EMAIL_PORT` | Your SMTP provider host and port |
+| `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | SMTP login credentials (private) |
+| `DEFAULT_FROM_EMAIL` | Verified sender address used for seller verification and password resets |
 
 Render also provides `RENDER_EXTERNAL_HOSTNAME`; the settings include its hostname and HTTPS origin automatically. Keep the existing database and Cloudinary credentials when updating the service. Configure any optional Razorpay, Delhivery, SMTP, commission, and payout environment variables only if those integrations are enabled.
 

@@ -137,6 +137,19 @@ class DashboardAccessTests(TestCase):
         self.assertRedirects(response, reverse("dashboard:index"))
         seller.refresh_from_db()
         product.refresh_from_db()
+        self.assertEqual(seller.status, SellerProfile.Status.PENDING)
+        self.assertFalse(product.is_active)
+        self.assertNotContains(self.client.get(reverse("home")), product.name)
+
+        SellerProfile.objects.filter(pk=seller.pk).update(email_verified=True)
+        response = self.client.post(
+            reverse("dashboard:seller_status_update", args=[seller.pk]),
+            {"action": "approve"},
+        )
+
+        self.assertRedirects(response, reverse("dashboard:index"))
+        seller.refresh_from_db()
+        product.refresh_from_db()
         self.assertEqual(seller.status, SellerProfile.Status.APPROVED)
         self.assertTrue(product.is_active)
         self.assertContains(self.client.get(reverse("home")), product.name)

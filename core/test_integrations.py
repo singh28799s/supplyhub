@@ -202,6 +202,7 @@ class RazorpayFlowTests(TestCase):
             company_name="Payout seller",
             contact_name="Seller",
             email="seller@example.com",
+            email_verified=True,
             status=SellerProfile.Status.APPROVED,
             razorpay_linked_account_id="acc_test123",
         )
@@ -271,6 +272,7 @@ class RazorpayFlowTests(TestCase):
             company_name="Commission seller",
             contact_name="Seller",
             email="commission@example.com",
+            email_verified=True,
             status=SellerProfile.Status.APPROVED,
         )
         category = Category.objects.create(name="Commission products")

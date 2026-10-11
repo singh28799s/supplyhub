@@ -128,6 +128,12 @@ def seller_status_update(request, seller_id):
                 f"{seller.company_name} cannot be approved while its account is disabled.",
             )
             return redirect("dashboard:index")
+        if not seller.email_verified:
+            messages.error(
+                request,
+                f"{seller.company_name} must verify its email before approval.",
+            )
+            return redirect("dashboard:index")
         with transaction.atomic():
             seller.status = SellerProfile.Status.APPROVED
             seller.save(update_fields=["status", "updated_at"])

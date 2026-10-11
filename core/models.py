@@ -74,6 +74,10 @@ class SellerProfile(models.Model):
     contact_name = models.CharField(max_length=150)
     email = models.EmailField()
     phone = models.CharField(max_length=30, blank=True)
+    email_verified = models.BooleanField(default=False)
+    email_verification_sent_at = models.DateTimeField(null=True, blank=True)
+    email_verification_window_started_at = models.DateTimeField(null=True, blank=True)
+    email_verification_send_count = models.PositiveSmallIntegerField(default=0)
     country = models.CharField(max_length=100, default="India")
     city = models.CharField(max_length=100, blank=True)
     business_type = models.CharField(
@@ -114,10 +118,32 @@ class SellerProfile(models.Model):
 
     @property
     def is_approved(self):
-        return self.status == self.Status.APPROVED and self.user.is_active
+        return (
+            self.status == self.Status.APPROVED
+            and self.user.is_active
+            and self.email_verified
+        )
 
     def __str__(self):
         return self.company_name
+
+
+class SellerLoginChallenge(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="seller_login_challenges",
+    )
+    phone = models.CharField(max_length=30)
+    created_at = models.DateTimeField(auto_now_add=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    consumed = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-created_at"]),
+        ]
 
 
 PRODUCT_DETAIL_FIELDS = (

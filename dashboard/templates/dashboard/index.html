@@ -593,7 +593,7 @@ MAIN
             <div class="page-header">
                 <div>
                     <h2>Seller approvals</h2>
-                    <p>Review seller applications. Approving publishes that seller's product listings.</p>
+                    <p>Review seller applications. Sellers must verify their email before approval and product publication.</p>
                 </div>
             </div>
 
@@ -609,6 +609,7 @@ MAIN
                                 <th>Contact</th>
                                 <th>Email</th>
                                 <th>Products</th>
+                                <th>Email verification</th>
                                 <th>Status</th>
                                 <th>Review</th>
                             </tr>
@@ -620,14 +621,19 @@ MAIN
                                 <td>{{ seller.contact_name }}</td>
                                 <td>{{ seller.email }}</td>
                                 <td>{{ seller.product_count }}</td>
+                                <td>{% if seller.email_verified %}<span class="status status-success">Verified</span>{% else %}<span class="status status-warning">Not verified</span>{% endif %}</td>
                                 <td>{% if seller.status == "pending" %}<span class="status status-warning">Pending</span>{% else %}<span class="status status-danger">Rejected</span>{% endif %}</td>
                                 <td>
                                     <div class="d-flex flex-wrap gap-2">
+                                        {% if seller.email_verified %}
                                         <form method="post" action="{% url 'dashboard:seller_status_update' seller.pk %}" onsubmit="return confirm('Approve this seller and publish all their products?');">
                                             {% csrf_token %}
                                             <input type="hidden" name="action" value="approve">
                                             <button class="btn btn-sm btn-success" type="submit">Approve &amp; publish products</button>
                                         </form>
+                                        {% else %}
+                                        <span class="text-muted small align-self-center">Email verification required</span>
+                                        {% endif %}
                                         {% if seller.status == "pending" %}
                                         <form method="post" action="{% url 'dashboard:seller_status_update' seller.pk %}" onsubmit="return confirm('Reject this seller application?');">
                                             {% csrf_token %}
@@ -639,7 +645,7 @@ MAIN
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="6" class="text-center text-muted py-4">No seller applications need review.</td></tr>
+                            <tr><td colspan="7" class="text-center text-muted py-4">No seller applications need review.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
