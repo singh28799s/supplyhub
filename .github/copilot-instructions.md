@@ -1,6 +1,6 @@
 # SupplyHub project guidance
 
-- This is a Django project. Keep project settings and root URL configuration in `supplyhub/`; keep application views, models, tests, and templates in `core/` or `dashboard/`.
+- This is a Django project. Keep project settings and root URL configuration in `supplyhub/`; customer routes belong in `customer_app/`, seller routes belong in `seller_app/`, and shared marketplace models/business logic remain in `core/`. Staff dashboard code belongs in `dashboard/`.
 - SupplyHub is a responsive B2B wholesale marketplace. Homepage campaigns are managed through Django admin and the staff dashboard links to campaign controls. Featured products, recent arrivals, and product offers are derived from the catalog.
 - Sellers apply through the seller centre and need admin approval before their shop or products are public. Seller profiles, product details/media/price tiers, quote assignments, and per-seller order statuses are separate models in the configured project database. Keep seller data access scoped to the authenticated seller.
 - Sellers control buyer-visible product detail fields. If a seller hides direct pricing, keep the listing quote-only in both the interface and the server-side cart/checkout endpoints.

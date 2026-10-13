@@ -29,7 +29,7 @@ The main staff/admin dashboard is available at `http://127.0.0.1:8000/staff-dash
 
 Customers can create an account at `/register/` and log in at `/login/`. Registration creates a regular customer account; it does not grant admin access. Logout uses the account menu on the homepage.
 
-The demo command is safe to run repeatedly and adds starter products. **Its sample prices and minimum order quantities are placeholders; review them before showing the catalog to customers.** Add or edit catalog entries in Django admin. Run checks and tests with `python manage.py check` and `python manage.py test`.
+Run `python manage.py load_demo_catalog` to add an idempotent demo catalog across 12 B2B categories. **All 24 products and their categories are created inactive, with names/descriptions marked DEMO and sample prices/MOQs; review and replace those values and upload real photos before activating them in Django admin.** Add or edit actual catalog entries in Django admin. Run checks and tests with `python manage.py check` and `python manage.py test`.
 
 The storefront is a responsive B2B wholesale marketplace with category browsing, search and sorting, MOQ/sample details, carts, wishlists and bulk quote requests. The homepage automatically features products marked **Featured**, shows the most recently added products, and builds a deals shelf from products with an offer price or sample price. Sellers have a separate seller centre and public store page.
 

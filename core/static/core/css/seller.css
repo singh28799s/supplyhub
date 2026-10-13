@@ -406,6 +406,12 @@ body {
     font-size: 42px;
 }
 
+.seller-product-card img[hidden],
+.seller-product-placeholder[hidden],
+.seller-logo-fallback[hidden] {
+    display: none !important;
+}
+
 .seller-product-card-body {
     padding: 15px;
 }

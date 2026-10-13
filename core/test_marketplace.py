@@ -1,6 +1,8 @@
 from datetime import timedelta
+from io import StringIO
 
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -75,6 +77,32 @@ class MarketplaceHomeTests(TestCase):
         with self.assertRaises(ValidationError):
             campaign.full_clean()
 
+    def test_product_detail_has_fallback_for_unavailable_remote_image(self):
+        self.product.image_url = "https://images.invalid/product.jpg"
+        self.product.save(update_fields=["image_url"])
+
+        response = self.client.get(
+            reverse("product_detail", args=[self.product.slug])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "onerror=\"this.hidden = true;")
+        self.assertContains(response, "photo unavailable")
+
+    def test_demo_catalog_adds_inactive_reviewable_products_idempotently(self):
+        call_command("load_demo_catalog", stdout=StringIO())
+        call_command("load_demo_catalog", stdout=StringIO())
+
+        demo_categories = Category.objects.filter(name__startswith="DEMO - ")
+        demo_products = Product.objects.filter(name__startswith="DEMO - ")
+        self.assertEqual(demo_categories.count(), 12)
+        self.assertEqual(demo_products.count(), 24)
+        self.assertFalse(demo_categories.filter(is_active=True).exists())
+        self.assertFalse(demo_products.filter(is_active=True).exists())
+        self.assertTrue(
+            demo_products.filter(description__startswith="DEMO DATA:").exists()
+        )
+
     def test_campaign_end_time_must_follow_start_time(self):
         now = timezone.now()
         campaign = PromotionCampaign(
@@ -86,4 +114,3 @@ class MarketplaceHomeTests(TestCase):
 
         with self.assertRaises(ValidationError):
             campaign.full_clean()
-

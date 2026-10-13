@@ -25,10 +25,12 @@
                 <div class="detail-image-wrap">
                     {% if product.gallery_images.all %}
                         {% with first_photo=product.gallery_images.all|first %}
-                        <img id="main-product-image" src="{{ first_photo.image.url }}" alt="{{ first_photo.alt_text|default:product.name }}">
+                        <img id="main-product-image" src="{{ first_photo.image.url }}" alt="{{ first_photo.alt_text|default:product.name }}" onerror="this.hidden = true; this.nextElementSibling.hidden = false;" onload="this.hidden = false; this.nextElementSibling.hidden = true;">
+                        <span class="fallback" role="img" aria-label="{{ product.name }} photo unavailable" hidden><i class="bi bi-box-seam"></i></span>
                         {% endwith %}
                     {% elif product.display_image_url %}
-                        <img id="main-product-image" src="{{ product.display_image_url }}" alt="{{ product.name }}">
+                        <img id="main-product-image" src="{{ product.display_image_url }}" alt="{{ product.name }}" onerror="this.hidden = true; this.nextElementSibling.hidden = false;" onload="this.hidden = false; this.nextElementSibling.hidden = true;">
+                        <span class="fallback" role="img" aria-label="{{ product.name }} photo unavailable" hidden><i class="bi bi-box-seam"></i></span>
                     {% else %}
                         <span class="fallback" aria-hidden="true"><i class="bi bi-box-seam"></i></span>
                     {% endif %}
@@ -37,7 +39,8 @@
                 <div class="product-gallery" aria-label="More product photos">
                     {% for photo in product.gallery_images.all %}
                     <button class="gallery-thumb" type="button" data-image-url="{{ photo.image.url }}" data-image-alt="{{ photo.alt_text|default:product.name }}">
-                        <img src="{{ photo.image.url }}" alt="{{ photo.alt_text|default:product.name }}" loading="lazy">
+                        <img src="{{ photo.image.url }}" alt="{{ photo.alt_text|default:product.name }}" loading="lazy" onerror="this.hidden = true; this.nextElementSibling.hidden = false;">
+                        <i class="bi bi-box-seam gallery-thumb-fallback" aria-hidden="true" hidden></i>
                     </button>
                     {% endfor %}
                 </div>
@@ -197,6 +200,8 @@
             if (!image) return;
             image.src = button.dataset.imageUrl;
             image.alt = button.dataset.imageAlt;
+            image.hidden = false;
+            image.nextElementSibling.hidden = true;
         });
     });
 </script>

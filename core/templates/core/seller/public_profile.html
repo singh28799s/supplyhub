@@ -2,8 +2,8 @@
 {% block title %}{{ seller.company_name }}{% endblock %}
 {% block content %}
 <section class="seller-public-hero mb-4">
-    {% if seller.cover_image %}<img class="seller-public-cover" src="{{ seller.cover_image.url }}" alt="">{% endif %}
-    {% if seller.logo %}<img src="{{ seller.logo.url }}" alt="{{ seller.company_name }} logo">{% else %}<span class="seller-logo-fallback"><i class="bi bi-buildings"></i></span>{% endif %}
+    {% if seller.cover_image %}<img class="seller-public-cover" src="{{ seller.cover_image.url }}" alt="" onerror="this.hidden = true;">{% endif %}
+    {% if seller.logo %}<img src="{{ seller.logo.url }}" alt="{{ seller.company_name }} logo" onerror="this.hidden = true; this.nextElementSibling.hidden = false;"><span class="seller-logo-fallback" hidden><i class="bi bi-buildings"></i></span>{% else %}<span class="seller-logo-fallback"><i class="bi bi-buildings"></i></span>{% endif %}
     <div class="seller-public-hero-content">
         <span class="seller-status"><i class="bi bi-patch-check-fill"></i> Verified seller</span>
         <h1 class="h2 mt-2 mb-1">{{ seller.company_name }}</h1>
@@ -25,7 +25,7 @@
     {% for product in products %}
     <div class="col-6 col-md-4 col-xl-3">
         <a class="seller-product-card d-block" href="{% url 'product_detail' product.slug %}">
-            {% if product.display_image_url %}<img src="{{ product.display_image_url }}" alt="{{ product.name }}" loading="lazy">{% else %}<span class="seller-product-placeholder"><i class="bi bi-box-seam"></i></span>{% endif %}
+            {% if product.display_image_url %}<img src="{{ product.display_image_url }}" alt="{{ product.name }}" loading="lazy" onerror="this.hidden = true; this.nextElementSibling.hidden = false;"><span class="seller-product-placeholder" hidden><i class="bi bi-box-seam"></i></span>{% else %}<span class="seller-product-placeholder"><i class="bi bi-box-seam"></i></span>{% endif %}
             <div class="seller-product-card-body"><h3>{{ product.name }}</h3>{% if "price" in product.visible_detail_fields %}<strong>₹{{ product.wholesale_price|floatformat:2 }} / {{ product.unit }}</strong>{% endif %}{% if "moq" in product.visible_detail_fields %}<p class="seller-muted small mb-0 mt-1">MOQ {{ product.minimum_order_quantity }} {{ product.unit }}</p>{% endif %}<span class="d-block mt-3 text-success fw-semibold">View details and ask for a quote</span></div>
         </a>
     </div>
