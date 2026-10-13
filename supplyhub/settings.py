@@ -70,6 +70,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.humanize",
     "core",
+    "customer_app",
+    "seller_app",
     "dashboard",
 ]
 

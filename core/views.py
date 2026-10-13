@@ -24,6 +24,7 @@ from .forms import (
     DelhiveryShipmentForm,
     OrderCheckoutForm,
     QuoteRequestForm,
+    SellerEmailOtpForm,
     SellerOrderStatusForm,
     SellerOtpForm,
     SellerProfileForm,
@@ -65,8 +66,10 @@ from .payments import (
 )
 from .shipping import DelhiveryError, create_shipment, delhivery_is_configured, fetch_tracking
 from .seller_security import (
+    EMAIL_VERIFICATION_CODE_MAX_ATTEMPTS,
     EMAIL_VERIFICATION_SALT,
     SellerSecurityError,
+    check_seller_email_verification_code,
     check_seller_sms_verification,
     normalize_seller_phone,
     send_seller_email_verification,
@@ -151,6 +154,9 @@ def seller_mfa(request):
     request.session["seller_mfa_pending_user_id"] = request.user.pk
     action = request.POST.get("action") if request.method == "POST" else ""
     code_form = SellerOtpForm(request.POST if action == "verify" else None)
+    email_code_form = SellerEmailOtpForm(
+        request.POST if action == "email_verify" else None
+    )
     phone = normalize_seller_phone(profile.phone, profile.country)
     phone_error = "" if phone else (
         "A valid seller phone number is required. Contact site staff to update it."
@@ -167,7 +173,62 @@ def seller_mfa(request):
                 "The verification email could not be sent. Please try again later.",
             )
         else:
-            messages.success(request, "A new email verification link has been sent.")
+            messages.success(
+                request,
+                f"A 6-digit verification code was sent to {profile.email}.",
+            )
+    elif action == "email_verify":
+        if not email_code_form.is_valid():
+            messages.error(request, "Enter the 6-digit code sent to your email.")
+        else:
+            now = timezone.now()
+            with transaction.atomic():
+                verified_profile = SellerProfile.objects.select_for_update().get(
+                    pk=profile.pk
+                )
+                expires_at = verified_profile.email_verification_code_expires_at
+                if (
+                    not verified_profile.email_verification_code_hash
+                    or expires_at is None
+                    or expires_at <= now
+                ):
+                    email_error = "Your email code expired. Request a new code."
+                    is_verified = False
+                elif (
+                    verified_profile.email_verification_code_attempts
+                    >= EMAIL_VERIFICATION_CODE_MAX_ATTEMPTS
+                ):
+                    email_error = "Too many code attempts. Request a new email code."
+                    is_verified = False
+                else:
+                    verified_profile.email_verification_code_attempts += 1
+                    is_verified = check_seller_email_verification_code(
+                        email_code_form.cleaned_data["code"],
+                        verified_profile.email_verification_code_hash,
+                    )
+                    if is_verified:
+                        verified_profile.email_verified = True
+                        verified_profile.email_verification_code_hash = ""
+                        verified_profile.email_verification_code_expires_at = None
+                        verified_profile.email_verification_code_attempts = 0
+                    verified_profile.save(
+                        update_fields=[
+                            "email_verified",
+                            "email_verification_code_hash",
+                            "email_verification_code_expires_at",
+                            "email_verification_code_attempts",
+                            "updated_at",
+                        ]
+                    )
+                    email_error = ""
+            if is_verified:
+                profile.refresh_from_db()
+                messages.success(
+                    request,
+                    "Email verified. You can now request your SMS sign-in code.",
+                )
+            else:
+                messages.error(request, email_error or "That email code is not valid.")
     elif action == "send_code":
         if not profile.email_verified:
             messages.error(request, "Verify your seller email before requesting an SMS code.")
@@ -273,6 +334,7 @@ def seller_mfa(request):
             "email_verified": profile.email_verified,
             "phone_error": phone_error,
             "code_form": code_form,
+            "email_code_form": email_code_form,
         },
     )
 

@@ -2,6 +2,8 @@
 
 A responsive Django wholesale marketplace. Staff manage sellers, products, orders, offers, homepage campaigns, and store settings from the staff dashboard. Django admin is also available for advanced maintenance.
 
+Customer-facing routes are organized in the `customer_app` Django app, and seller registration and seller-portal routes are organized in `seller_app`. They currently reuse the existing `core` models and business logic to preserve the database and existing behavior; staff tools remain in `dashboard`.
+
 For a step-by-step Hindi/Hinglish guide to customer, seller, and staff workflows and common fixes, see [WEBSITE_GUIDE.md](./WEBSITE_GUIDE.md).
 
 ## Run on Windows (PowerShell)
@@ -55,9 +57,9 @@ After pulling changes that add a migration, apply it with `python manage.py migr
 
 ### Seller accounts, sign-in security, and listings
 
-Sellers apply at `/sellers/register/` or from **Sell on SupplyHub**. Seller access requires a verified seller email and an SMS verification code on every login. New seller phone numbers must be valid international numbers (for example `+919876543210`); existing sellers with an invalid or missing number must ask staff to correct the saved phone number. Configure Twilio Verify and production SMTP before enabling seller logins. SMS delivery may incur Twilio charges.
+Sellers apply at `/sellers/register/` or from **Sell on SupplyHub**. Seller access requires a 6-digit email verification code (expires in 10 minutes) and an SMS verification code on every login. Email codes are limited to five sends per hour, with a one-minute resend cooldown and five verification attempts. New seller phone numbers must be valid international numbers (for example `+919876543210`); existing sellers with an invalid or missing number must ask staff to correct the saved phone number. Configure Twilio Verify and production SMTP before enabling seller logins. SMS delivery may incur Twilio charges.
 
-Password recovery is available from the login page at `/password-reset/`. The reset link is sent by email; configure SMTP in Render so recovery links are delivered privately rather than written to server logs. Email verification links expire after 24 hours. SMS requests are rate-limited to five per hour, with a one-minute resend cooldown, and each code allows at most five checks.
+Password recovery is available from the login page at `/password-reset/`. The reset link is sent by email; configure SMTP in Render so recovery links are delivered privately rather than written to server logs. SMS requests are rate-limited to five per hour, with a one-minute resend cooldown, and each code allows at most five checks.
 
 A seller account starts as **Awaiting review**; staff must approve the profile under **Seller approvals** in the staff dashboard before the seller's products or public shop appear. Sign in with that seller account and open `/seller/dashboard/` to manage the shop profile, product listings, buyer quote inquiries, and seller-specific order updates. Seller edit/order/quote actions are scoped to the signed-in seller's own records. Sellers cannot change the MFA phone from the profile form; staff must verify and update a replacement number.
 

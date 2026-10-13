@@ -614,6 +614,22 @@ class SellerOtpForm(forms.Form):
     )
 
 
+class SellerEmailOtpForm(forms.Form):
+    code = forms.RegexField(
+        regex=r"^\d{6}$",
+        label="Email verification code",
+        error_messages={"invalid": "Enter the 6-digit code sent to your email."},
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "one-time-code",
+                "inputmode": "numeric",
+                "maxlength": "6",
+            }
+        ),
+    )
+
+
 class OrderCheckoutForm(forms.ModelForm):
     payment_method = forms.ChoiceField(
         choices=(),

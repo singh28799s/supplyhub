@@ -20,12 +20,22 @@
 
       {% if not email_verified %}
         <div class="alert alert-warning">
-          Verify the seller email address <strong>{{ seller.email }}</strong> before requesting an SMS code.
+          Enter the 6-digit email code to verify <strong>{{ seller.email }}</strong>. The code expires in 10 minutes.
         </div>
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="action" value="email_resend">
-          <button class="btn btn-success w-100" type="submit">Send email verification link</button>
+          <button class="btn btn-outline-success w-100 mb-3" type="submit">Send or resend email code</button>
+        </form>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="email_verify">
+          <label class="form-label" for="{{ email_code_form.code.id_for_label }}">{{ email_code_form.code.label }}</label>
+          {{ email_code_form.code }}
+          {% for error in email_code_form.code.errors %}
+            <div class="text-danger small mt-1">{{ error }}</div>
+          {% endfor %}
+          <button class="btn btn-success w-100 mt-3" type="submit">Verify email</button>
         </form>
       {% else %}
         {% if phone_error %}

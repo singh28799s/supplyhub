@@ -1,10 +1,14 @@
+from datetime import timedelta
 from decimal import Decimal
+import re
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import check_password, make_password
 from django.core.signing import TimestampSigner
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from .seller_security import EMAIL_VERIFICATION_SALT, normalize_seller_phone
 from .models import (
@@ -236,6 +240,170 @@ class SellerMarketplaceTests(TestCase):
         self.assertRedirects(response, reverse("login"))
         profile.refresh_from_db()
         self.assertTrue(profile.email_verified)
+
+    def test_email_resend_sends_otp_and_only_stores_a_hash(self):
+        self.seller.email_verified = False
+        self.seller.save(update_fields=["email_verified"])
+        self.client.force_login(self.seller_user)
+
+        with patch("core.seller_security.send_mail", return_value=1) as send_mail:
+            response = self.client.post(
+                reverse("seller_mfa"),
+                {"action": "email_resend"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        send_mail.assert_called_once()
+        body = send_mail.call_args.args[1]
+        match = re.search(r"(?m)^(\d{6})$", body)
+        self.assertIsNotNone(match)
+        self.seller.refresh_from_db()
+        self.assertTrue(
+            check_password(
+                match.group(1),
+                self.seller.email_verification_code_hash,
+            ),
+        )
+        self.assertNotEqual(
+            self.seller.email_verification_code_hash,
+            match.group(1),
+        )
+        self.assertEqual(self.seller.email_verification_code_attempts, 0)
+        self.assertGreater(
+            self.seller.email_verification_code_expires_at,
+            timezone.now(),
+        )
+
+    def test_email_resend_obeys_cooldown_and_hourly_limit(self):
+        self.seller.email_verified = False
+        self.seller.save(update_fields=["email_verified"])
+        self.client.force_login(self.seller_user)
+
+        with patch("core.seller_security.send_mail", return_value=1) as send_mail:
+            self.client.post(reverse("seller_mfa"), {"action": "email_resend"})
+            cooldown_response = self.client.post(
+                reverse("seller_mfa"),
+                {"action": "email_resend"},
+            )
+            self.assertContains(
+                cooldown_response,
+                "Please wait one minute before requesting another verification email.",
+            )
+
+            self.seller.refresh_from_db()
+            self.seller.email_verification_sent_at = (
+                timezone.now() - timedelta(minutes=2)
+            )
+            self.seller.email_verification_window_started_at = timezone.now()
+            self.seller.email_verification_send_count = 5
+            self.seller.save(
+                update_fields=[
+                    "email_verification_sent_at",
+                    "email_verification_window_started_at",
+                    "email_verification_send_count",
+                ]
+            )
+            hourly_limit_response = self.client.post(
+                reverse("seller_mfa"),
+                {"action": "email_resend"},
+            )
+            self.assertContains(
+                hourly_limit_response,
+                "Too many verification emails were requested",
+            )
+
+        send_mail.assert_called_once()
+
+    def test_correct_email_otp_verifies_once_and_clears_code(self):
+        self.seller.email_verified = False
+        self.seller.email_verification_code_hash = make_password("123456")
+        self.seller.email_verification_code_expires_at = (
+            timezone.now() + timedelta(minutes=10)
+        )
+        self.seller.save(
+            update_fields=[
+                "email_verified",
+                "email_verification_code_hash",
+                "email_verification_code_expires_at",
+            ]
+        )
+        self.client.force_login(self.seller_user)
+
+        response = self.client.post(
+            reverse("seller_mfa"),
+            {"action": "email_verify", "code": "123456"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.seller.refresh_from_db()
+        self.assertTrue(self.seller.email_verified)
+        self.assertEqual(self.seller.email_verification_code_hash, "")
+        self.assertIsNone(self.seller.email_verification_code_expires_at)
+
+    def test_email_otp_expires_and_wrong_attempts_are_limited(self):
+        self.seller.email_verified = False
+        self.seller.email_verification_code_hash = make_password("123456")
+        self.seller.email_verification_code_expires_at = (
+            timezone.now() - timedelta(seconds=1)
+        )
+        self.seller.save(
+            update_fields=[
+                "email_verified",
+                "email_verification_code_hash",
+                "email_verification_code_expires_at",
+            ]
+        )
+        self.client.force_login(self.seller_user)
+        expired = self.client.post(
+            reverse("seller_mfa"),
+            {"action": "email_verify", "code": "123456"},
+        )
+        self.assertContains(expired, "Your email code expired")
+        self.seller.refresh_from_db()
+        self.assertFalse(self.seller.email_verified)
+
+        self.seller.email_verification_code_expires_at = (
+            timezone.now() + timedelta(minutes=10)
+        )
+        self.seller.email_verification_code_attempts = 4
+        self.seller.save(
+            update_fields=[
+                "email_verification_code_expires_at",
+                "email_verification_code_attempts",
+            ]
+        )
+        wrong = self.client.post(
+            reverse("seller_mfa"),
+            {"action": "email_verify", "code": "654321"},
+        )
+        self.assertContains(wrong, "That email code is not valid")
+        self.seller.refresh_from_db()
+        self.assertEqual(self.seller.email_verification_code_attempts, 5)
+        locked = self.client.post(
+            reverse("seller_mfa"),
+            {"action": "email_verify", "code": "654321"},
+        )
+        self.assertContains(locked, "Too many code attempts")
+        self.seller.refresh_from_db()
+        self.assertEqual(self.seller.email_verification_code_attempts, 5)
+
+    @override_settings(
+        DEBUG=False,
+        EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend",
+    )
+    def test_production_console_email_backend_reports_configuration_error(self):
+        self.seller.email_verified = False
+        self.seller.save(update_fields=["email_verified"])
+        self.client.force_login(self.seller_user)
+
+        response = self.client.post(
+            reverse("seller_mfa"),
+            {"action": "email_resend"},
+        )
+
+        self.assertContains(response, "Production email is set to console mode")
+        self.seller.refresh_from_db()
+        self.assertFalse(self.seller.email_verification_code_hash)
 
     def test_password_reset_route_is_available(self):
         response = self.client.get(reverse("password_reset"))

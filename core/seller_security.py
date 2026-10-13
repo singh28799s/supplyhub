@@ -1,13 +1,14 @@
 import logging
 import re
+import secrets
+from datetime import timedelta
 from urllib.parse import quote
 
 import requests
 from django.conf import settings
+from django.contrib.auth.hashers import check_password, make_password
 from django.core.mail import send_mail
-from django.core.signing import TimestampSigner
 from django.db import transaction
-from django.urls import reverse
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -15,6 +16,8 @@ EMAIL_VERIFICATION_SALT = "supplyhub.seller-email-verification"
 EMAIL_VERIFICATION_WINDOW = 60 * 60
 EMAIL_VERIFICATION_MAX_SENDS = 5
 EMAIL_VERIFICATION_COOLDOWN = 60
+EMAIL_VERIFICATION_CODE_TTL = 10 * 60
+EMAIL_VERIFICATION_CODE_MAX_ATTEMPTS = 5
 
 
 class SellerSecurityError(Exception):
@@ -90,6 +93,14 @@ def check_seller_sms_verification(phone, code):
 def send_seller_email_verification(request, profile):
     from .models import SellerProfile
 
+    if (
+        not settings.DEBUG
+        and settings.EMAIL_BACKEND == "django.core.mail.backends.console.EmailBackend"
+    ):
+        raise SellerSecurityError(
+            "Production email is set to console mode. Configure SMTP in Render first."
+        )
+
     with transaction.atomic():
         locked_profile = SellerProfile.objects.select_for_update().get(pk=profile.pk)
         now = timezone.now()
@@ -108,35 +119,46 @@ def send_seller_email_verification(request, profile):
                 "Please wait one minute before requesting another verification email."
             )
 
-        token = TimestampSigner(salt=EMAIL_VERIFICATION_SALT).sign(
-            f"{locked_profile.pk}:{locked_profile.email.casefold()}"
-        )
-        verification_url = request.build_absolute_uri(
-            reverse("seller_email_verify", kwargs={"token": token})
-        )
+        verification_code = f"{secrets.randbelow(900_000) + 100_000:06d}"
         subject = "Verify your SupplyHub seller email"
         message = (
             f"Hello {locked_profile.contact_name},\n\n"
-            "Confirm this email address for your SupplyHub seller account by opening "
-            f"this link:\n{verification_url}\n\n"
-            "For your protection, the link expires after 24 hours. If you did not "
-            "request this, you can ignore this message."
+            "Your SupplyHub seller email verification code is:\n\n"
+            f"{verification_code}\n\n"
+            "This code expires in 10 minutes and can be used once. "
+            "If you did not request it, you can ignore this message."
         )
-        send_mail(
+        sent_count = send_mail(
             subject,
             message,
             settings.DEFAULT_FROM_EMAIL,
             [locked_profile.email],
             fail_silently=False,
         )
+        if sent_count != 1:
+            raise SellerSecurityError("The verification email was not accepted for delivery.")
+        locked_profile.email_verification_code_hash = make_password(
+            verification_code
+        )
+        locked_profile.email_verification_code_expires_at = (
+            now + timedelta(seconds=EMAIL_VERIFICATION_CODE_TTL)
+        )
+        locked_profile.email_verification_code_attempts = 0
         locked_profile.email_verification_window_started_at = window_started
         locked_profile.email_verification_send_count = send_count + 1
         locked_profile.email_verification_sent_at = now
         locked_profile.save(
             update_fields=[
+                "email_verification_code_hash",
+                "email_verification_code_expires_at",
+                "email_verification_code_attempts",
                 "email_verification_window_started_at",
                 "email_verification_send_count",
                 "email_verification_sent_at",
                 "updated_at",
             ]
         )
+
+
+def check_seller_email_verification_code(code, encoded_code):
+    return bool(encoded_code) and check_password(code, encoded_code)
