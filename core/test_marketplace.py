@@ -3,7 +3,7 @@ from io import StringIO
 
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -88,6 +88,21 @@ class MarketplaceHomeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "onerror=\"this.hidden = true;")
         self.assertContains(response, "photo unavailable")
+
+    @override_settings(
+        SECURE_SSL_REDIRECT=False,
+        SECURE_HSTS_SECONDS=3600,
+        SECURE_HSTS_INCLUDE_SUBDOMAINS=True,
+        SECURE_HSTS_PRELOAD=True,
+    )
+    def test_security_middleware_adds_browser_protection_headers(self):
+        response = self.client.get(reverse("home"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(response["X-Frame-Options"], "DENY")
+        self.assertEqual(response["Referrer-Policy"], "same-origin")
+        self.assertIn("max-age=3600", response["Strict-Transport-Security"])
 
     def test_demo_catalog_adds_inactive_reviewable_products_idempotently(self):
         call_command("load_demo_catalog", stdout=StringIO())

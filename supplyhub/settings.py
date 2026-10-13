@@ -30,8 +30,8 @@ if DJANGO_ENV not in {"development", "production"}:
     raise ImproperlyConfigured("DJANGO_ENV must be either 'development' or 'production'.")
 
 DEBUG = env_bool("DEBUG", default=DJANGO_ENV == "development")
-if DJANGO_ENV == "production" and DEBUG:
-    raise ImproperlyConfigured("DEBUG must be False when DJANGO_ENV=production.")
+if (DJANGO_ENV == "production" or env_bool("RENDER")) and DEBUG:
+    raise ImproperlyConfigured("DEBUG must be False in production and on Render.")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
 if not SECRET_KEY:
@@ -48,6 +48,10 @@ elif render_hostname and render_hostname not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(render_hostname)
 if not ALLOWED_HOSTS:
     raise ImproperlyConfigured("Set ALLOWED_HOSTS to the production hostnames.")
+if not DEBUG and "*" in ALLOWED_HOSTS:
+    raise ImproperlyConfigured(
+        "Production ALLOWED_HOSTS must list specific hostnames, not '*'."
+    )
 
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 if render_hostname:
@@ -146,7 +150,10 @@ print("DATABASE CONFIG:", {
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 12},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -184,6 +191,10 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() in {"1", "true", "yes"}
 EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").lower() in {"1", "true", "yes"}
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise ImproperlyConfigured(
+        "EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled."
+    )
 DEFAULT_FROM_EMAIL = os.getenv(
     "DEFAULT_FROM_EMAIL",
     EMAIL_HOST_USER or "SupplyHub <no-reply@supplyhub.local>",
