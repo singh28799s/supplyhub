@@ -94,11 +94,22 @@ def send_seller_email_verification(request, profile):
     from .models import SellerProfile
 
     if (
-        not settings.DEBUG
+        settings.DJANGO_ENV == "production"
         and settings.EMAIL_BACKEND == "django.core.mail.backends.console.EmailBackend"
     ):
         raise SellerSecurityError(
             "Production email is set to console mode. Configure SMTP in Render first."
+        )
+    if settings.DJANGO_ENV == "production" and not all(
+        (
+            settings.EMAIL_HOST,
+            settings.EMAIL_HOST_USER,
+            settings.EMAIL_HOST_PASSWORD,
+        )
+    ):
+        raise SellerSecurityError(
+            "Production SMTP is incomplete. Set EMAIL_HOST, EMAIL_HOST_USER, "
+            "and EMAIL_HOST_PASSWORD in Render."
         )
 
     with transaction.atomic():

@@ -12,7 +12,7 @@
     <section class="card border-0 shadow-sm p-4 p-md-5">
       <a href="{% url 'home' %}" class="text-decoration-none fw-bold">{{ store_settings.store_name }}</a>
       <h1 class="h3 mt-4">Secure your seller sign-in</h1>
-      <p class="text-secondary">Confirm your seller email and enter the SMS code each time you sign in.</p>
+      <p class="text-secondary">Your email code is sent when you sign in if your email is not verified. After email verification, an SMS code is sent to your registered phone each time you sign in.</p>
 
       {% for message in messages %}
         <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>

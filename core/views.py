@@ -4,7 +4,7 @@ from decimal import Decimal
 from datetime import timedelta
 from functools import wraps
 
-from django.contrib.auth import get_user_model, login
+from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
@@ -152,7 +152,14 @@ def seller_mfa(request):
         return redirect("seller_dashboard")
 
     request.session["seller_mfa_pending_user_id"] = request.user.pk
-    action = request.POST.get("action") if request.method == "POST" else ""
+    auto_send_session_key = "seller_mfa_auto_code_attempted_user_id"
+    if request.method == "POST":
+        action = request.POST.get("action")
+    elif request.session.get(auto_send_session_key) != request.user.pk:
+        request.session[auto_send_session_key] = request.user.pk
+        action = "email_resend" if not profile.email_verified else "send_code"
+    else:
+        action = ""
     code_form = SellerOtpForm(request.POST if action == "verify" else None)
     email_code_form = SellerEmailOtpForm(
         request.POST if action == "email_verify" else None
@@ -223,10 +230,12 @@ def seller_mfa(request):
                     email_error = ""
             if is_verified:
                 profile.refresh_from_db()
+                request.session.pop(auto_send_session_key, None)
                 messages.success(
                     request,
-                    "Email verified. You can now request your SMS sign-in code.",
+                    "Email verified. Your SMS sign-in code is being sent.",
                 )
+                return redirect("seller_mfa")
             else:
                 messages.error(request, email_error or "That email code is not valid.")
     elif action == "send_code":
@@ -264,6 +273,10 @@ def seller_mfa(request):
                 try:
                     send_seller_sms_verification(phone)
                 except SellerSecurityError as exc:
+                    SellerLoginChallenge.objects.filter(
+                        pk=challenge.pk,
+                        consumed=False,
+                    ).delete()
                     messages.error(request, str(exc))
                 else:
                     messages.success(
@@ -318,6 +331,7 @@ def seller_mfa(request):
                             request.session["seller_mfa_verified_user_id"] = request.user.pk
                             request.session["seller_mfa_verified_phone"] = phone
                             request.session.pop("seller_mfa_pending_user_id", None)
+                            request.session.pop(auto_send_session_key, None)
                             next_url = request.session.pop(
                                 "seller_mfa_next_url",
                                 reverse("seller_dashboard"),
@@ -1219,10 +1233,7 @@ def seller_register(request):
             profile.email = profile.email or request.user.email
             profile.status = SellerProfile.Status.PENDING
             profile.save()
-            request.session.pop("seller_mfa_verified_user_id", None)
-            request.session.pop("seller_mfa_verified_phone", None)
-            request.session["seller_mfa_pending_user_id"] = request.user.pk
-            request.session["seller_mfa_next_url"] = reverse("seller_dashboard")
+            logout(request)
             try:
                 send_seller_email_verification(request, profile)
             except SellerSecurityError as exc:
@@ -1234,19 +1245,16 @@ def seller_register(request):
                 )
             messages.success(
                 request,
-                "Your seller application was submitted. Verify your email and phone to open the seller portal.",
+                "Your seller application was submitted. Log in to verify your email and phone.",
             )
-            return redirect("seller_mfa")
+            return redirect("login")
         template = "core/seller/register.html"
     else:
         form = SellerRegistrationForm(request.POST or None, request.FILES or None)
         if request.method == "POST" and form.is_valid():
             with transaction.atomic():
                 user = form.save()
-            login(request, user)
             profile = user.seller_profile
-            request.session["seller_mfa_pending_user_id"] = user.pk
-            request.session["seller_mfa_next_url"] = reverse("seller_dashboard")
             try:
                 send_seller_email_verification(request, profile)
             except SellerSecurityError as exc:
@@ -1258,9 +1266,9 @@ def seller_register(request):
                 )
             messages.success(
                 request,
-                "Your seller application was submitted. Verify your email and phone to open the seller portal.",
+                "Your seller account and application were created. Log in to verify your email and phone.",
             )
-            return redirect("seller_mfa")
+            return redirect("login")
         template = "core/seller/register.html"
 
     return render(

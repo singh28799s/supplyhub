@@ -19,7 +19,7 @@
   <main class="auth-card">
     <a class="brand" href="{% url 'home' %}">{% include "core/partials/brand_mark.html" %} {{ store_settings.store_name }}</a>
     <h1 class="h3 mt-4">Welcome back</h1>
-    <p class="text-secondary">Log in to your SupplyHub account. Sellers will verify their sign-in by SMS.</p>
+    <p class="text-secondary">Log in to your SupplyHub account. Sellers receive an email verification code when needed and an SMS sign-in code after email verification.</p>
     {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
     <form method="post">
       {% csrf_token %}

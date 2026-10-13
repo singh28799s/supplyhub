@@ -10,7 +10,11 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from .seller_security import EMAIL_VERIFICATION_SALT, normalize_seller_phone
+from .seller_security import (
+    EMAIL_VERIFICATION_SALT,
+    SellerSecurityError,
+    normalize_seller_phone,
+)
 from .models import (
     Category,
     Order,
@@ -57,30 +61,33 @@ class SellerMarketplaceTests(TestCase):
             ],
         )
 
-    def test_seller_signup_creates_pending_profile_and_login(self):
-        response = self.client.post(
-            reverse("seller_register"),
-            {
-                "username": "newmanufacturer",
-                "email": "maker@example.com",
-                "company_name": "Maker Company",
-                "contact_name": "Maker Contact",
-                "phone": "+919876543210",
-                "country": "India",
-                "city": "Pune",
-                "business_type": SellerProfile.BusinessType.MANUFACTURER,
-                "years_in_business": "3",
-                "description": "Wholesale manufacturer profile.",
-                "password1": "DifferentSellerPass!823",
-                "password2": "DifferentSellerPass!823",
-            },
-        )
+    def test_seller_signup_creates_pending_profile_and_redirects_to_login(self):
+        with patch("core.seller_security.send_mail", return_value=1):
+            response = self.client.post(
+                reverse("seller_register"),
+                {
+                    "username": "newmanufacturer",
+                    "email": "maker@example.com",
+                    "company_name": "Maker Company",
+                    "contact_name": "Maker Contact",
+                    "phone": "+919876543210",
+                    "country": "India",
+                    "city": "Pune",
+                    "business_type": SellerProfile.BusinessType.MANUFACTURER,
+                    "years_in_business": "3",
+                    "description": "Wholesale manufacturer profile.",
+                    "password1": "DifferentSellerPass!823",
+                    "password2": "DifferentSellerPass!823",
+                },
+            )
 
-        self.assertRedirects(response, reverse("seller_mfa"))
+        self.assertRedirects(response, reverse("login"))
+        login_page = self.client.get(reverse("login"))
+        self.assertContains(login_page, "Welcome back")
         profile = SellerProfile.objects.get(company_name="Maker Company")
         self.assertEqual(profile.status, SellerProfile.Status.PENDING)
         self.assertEqual(profile.user.username, "newmanufacturer")
-        self.assertTrue(self.client.session.get("_auth_user_id"))
+        self.assertNotIn("_auth_user_id", self.client.session)
         self.assertFalse(profile.email_verified)
         self.assertEqual(profile.phone, "+919876543210")
         self.assertEqual(profile.products.count(), 0)
@@ -122,23 +129,18 @@ class SellerMarketplaceTests(TestCase):
         self.seller_user.set_password("SecureSellerPassword!823")
         self.seller_user.save(update_fields=["password"])
 
-        response = self.client.post(
-            reverse("login"),
-            {
-                "username": self.seller_user.username,
-                "password": "SecureSellerPassword!823",
-            },
-        )
-
-        self.assertRedirects(response, reverse("seller_mfa"))
-        self.assertNotIn("seller_mfa_verified_user_id", self.client.session)
         with patch("core.views.send_seller_sms_verification") as send_sms:
             response = self.client.post(
-                reverse("seller_mfa"),
-                {"action": "send_code"},
+                reverse("login"),
+                {
+                    "username": self.seller_user.username,
+                    "password": "SecureSellerPassword!823",
+                },
             )
-        self.assertEqual(response.status_code, 200)
+            self.assertRedirects(response, reverse("seller_mfa"))
+            self.client.get(reverse("seller_mfa"))
         send_sms.assert_called_once_with("+919876543210")
+        self.assertNotIn("seller_mfa_verified_user_id", self.client.session)
         challenge = self.seller_user.seller_login_challenges.latest("created_at")
 
         with patch("core.views.check_seller_sms_verification", return_value=True) as check_sms:
@@ -155,6 +157,56 @@ class SellerMarketplaceTests(TestCase):
         self.assertEqual(
             self.client.session["seller_mfa_verified_user_id"],
             self.seller_user.pk,
+        )
+
+    def test_unverified_seller_login_automatically_sends_email_code(self):
+        self.seller.email_verified = False
+        self.seller.save(update_fields=["email_verified"])
+        self.seller_user.set_password("SecureSellerPassword!823")
+        self.seller_user.save(update_fields=["password"])
+
+        with patch("core.views.send_seller_email_verification") as send_email:
+            response = self.client.post(
+                reverse("login"),
+                {
+                    "username": self.seller_user.username,
+                    "password": "SecureSellerPassword!823",
+                },
+            )
+            self.assertRedirects(response, reverse("seller_mfa"))
+
+        security_page = self.client.get(reverse("seller_mfa"))
+        send_email.assert_called_once()
+        self.assertContains(security_page, "Enter the 6-digit email code")
+
+    def test_failed_sms_delivery_does_not_block_retry(self):
+        self.client.force_login(self.seller_user)
+        with patch(
+            "core.views.send_seller_sms_verification",
+            side_effect=[
+                SellerSecurityError("SMS verification is temporarily unavailable."),
+                None,
+            ],
+        ) as send_sms:
+            failed = self.client.post(
+                reverse("seller_mfa"),
+                {"action": "send_code"},
+            )
+            self.assertContains(failed, "SMS verification is temporarily unavailable.")
+            self.assertFalse(
+                SellerLoginChallenge.objects.filter(user=self.seller_user).exists()
+            )
+
+            retried = self.client.post(
+                reverse("seller_mfa"),
+                {"action": "send_code"},
+            )
+            self.assertContains(retried, "An SMS verification code was sent")
+
+        self.assertEqual(send_sms.call_count, 2)
+        self.assertEqual(
+            SellerLoginChallenge.objects.filter(user=self.seller_user).count(),
+            1,
         )
 
     def test_seller_routes_are_blocked_until_mfa_is_verified(self):
@@ -329,12 +381,15 @@ class SellerMarketplaceTests(TestCase):
         )
         self.client.force_login(self.seller_user)
 
-        response = self.client.post(
-            reverse("seller_mfa"),
-            {"action": "email_verify", "code": "123456"},
-        )
+        with patch("core.views.send_seller_sms_verification") as send_sms:
+            with patch("core.views.send_seller_sms_verification") as send_sms:
+                response = self.client.post(
+                    reverse("seller_mfa"),
+                    {"action": "email_verify", "code": "123456"},
+                )
+                self.assertRedirects(response, reverse("seller_mfa"))
 
-        self.assertEqual(response.status_code, 200)
+            send_sms.assert_called_once_with("+919876543210")
         self.seller.refresh_from_db()
         self.assertTrue(self.seller.email_verified)
         self.assertEqual(self.seller.email_verification_code_hash, "")
@@ -388,6 +443,7 @@ class SellerMarketplaceTests(TestCase):
         self.assertEqual(self.seller.email_verification_code_attempts, 5)
 
     @override_settings(
+        DJANGO_ENV="production",
         DEBUG=False,
         EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend",
     )
@@ -402,6 +458,28 @@ class SellerMarketplaceTests(TestCase):
         )
 
         self.assertContains(response, "Production email is set to console mode")
+        self.seller.refresh_from_db()
+        self.assertFalse(self.seller.email_verification_code_hash)
+
+    @override_settings(
+        DJANGO_ENV="production",
+        DEBUG=False,
+        EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend",
+        EMAIL_HOST="",
+        EMAIL_HOST_USER="",
+        EMAIL_HOST_PASSWORD="",
+    )
+    def test_incomplete_production_smtp_configuration_is_reported(self):
+        self.seller.email_verified = False
+        self.seller.save(update_fields=["email_verified"])
+        self.client.force_login(self.seller_user)
+
+        response = self.client.post(
+            reverse("seller_mfa"),
+            {"action": "email_resend"},
+        )
+
+        self.assertContains(response, "Production SMTP is incomplete")
         self.seller.refresh_from_db()
         self.assertFalse(self.seller.email_verification_code_hash)
 
@@ -436,12 +514,13 @@ class SellerMarketplaceTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("seller_mfa"))
+        self.assertRedirects(response, reverse("login"))
         self.assertEqual(
             SellerProfile.objects.get(user=buyer_user).status,
             SellerProfile.Status.PENDING,
         )
         self.assertFalse(SellerProfile.objects.get(user=buyer_user).email_verified)
+        self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_unapproved_seller_product_is_not_published(self):
         pending_user = get_user_model().objects.create_user(
